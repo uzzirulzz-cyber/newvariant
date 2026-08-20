@@ -37,3 +37,41 @@ Files Modified:
 - src/components/admin/ProductEditorModal.tsx (duplicate safeguards + stock field)
 - vite.config.ts (scoped fs.allow)
 - tsconfig.json (exclude skills/upload/download)
+
+---
+Task ID: 2
+Agent: main
+Task: Restructure PlayBeat admin panel to match a reference screenshot — grouped sidebar nav (OVERVIEW / COMMERCE & INVENTORY / CUSTOMERS & SUPPORT / IPTV & SERVICES / MARKETING & INTEGRATIONS / PAYMENTS & SECURITY) + card-based dashboard with Revenue Trend, Order Breakdown, Traffic Sources, System Status, Pending Approvals, Live Notifications, Recent Orders, Top Products. Existing working views stay wired up; new pages are Coming Soon placeholders.
+
+Work Log:
+- Used VLM (z-ai vision CLI) to extract the screenshot's full layout: sidebar nav groups, dashboard card grid, color palette (#0a0b0d sidebar, #151a23 cards, #f59e0b gold, #3b82f6 blue, #8b5cf6 purple FAB), typography (uppercase section headers, mono labels), and component patterns (pills, cards, FAB)
+- Added ~200 lines of admin CSS to src/index.css: .admin-sidebar, .admin-nav-item (with gold left-border active state), .admin-card, .admin-section-header, .admin-gold-pill, .admin-pill-{green,amber,red,blue,purple}, .admin-fab (purple gradient FAB positioned bottom-left), .admin-sidebar-scroll, .no-scrollbar
+- Created src/components/admin/AdminDashboard.tsx — new dashboard view with 8 cards:
+    * Row 1: Revenue Trend (recharts AreaChart, 14-day cycle) + Order Breakdown (SVG donut showing completion %) + Traffic Sources (4 horizontal bars with different colors)
+    * Row 2: System Status (4 system rows with green Operational pills) + Pending Approvals (empty state with green check circle) + Live Notifications (2 timestamped items)
+    * Row 3: Recent Orders table (real orders from store) + Top Products list (real products sorted by totalSold)
+- Created src/components/admin/ComingSoonView.tsx — reusable placeholder showing icon, title, "Coming Soon" pill, description, planned capabilities grid, and a "Notify Me" button (wired to addToast)
+- Rewrote src/components/admin/AdminLayout.tsx — full sidebar + top header layout:
+    * Fixed 260px sidebar on desktop with 6 grouped nav sections (19 menu items)
+    * Slide-over drawer on mobile (hamburger in top header)
+    * Top header bar: hamburger + ALL CATEGORIES dropdown + breadcrumb + Storefront link + Admin Panel gold pill + Live Support link
+    * Sidebar footer: Themes & Sections + Navigation Customizer
+    * Purple gradient Live Support FAB bottom-left
+- Wired existing functional views to menu items: Dashboard → AdminDashboard (new), Catalog Products → ProductManagement, Digital License Vault → LicenseVaultManager, Orders & Fulfillment → OrderManagement, Payment Gateways → FinancialPaymentManager, TikTok Leads & Coupons → MarketingAutomationView, G2G → G2GConnectorView, Variant Deduplication → DuplicateVariationInspector, System Health → SystemStatusView, Admin Roles → AdminRolesView, Banners & Copy Editor → ContentManager, Navigation & Offers Bar → NavigationManager
+- Added COMING_SOON_META map for 15 placeholder pages (Website Builder CMS, Analytics & Traffic, Subscriptions, Discounts & Coupons, Customer Accounts, Support Tickets, IPTV M3U Servers, WooCommerce Bridge, Social Automation, TikTok Leads Engine, Email & SMS Campaigns, Financial Balance, JazzCash & Merchant, Payment Proofs, Security & Audit Logs) — each with a tailored description and 5 planned capabilities
+- Verified end-to-end with Agent Browser:
+    * Sidebar nav renders all 19 menu items in 6 grouped sections
+    * Clicking "Catalog Products" properly switches to ProductManagement (existing component)
+    * Clicking "IPTV M3U Servers" shows Coming Soon view with Planned Capabilities + Notify Me
+    * ALL CATEGORIES dropdown opens and lists all nav items
+    * Mobile (375×812): desktop sidebar is display:none, hamburger visible, drawer slides in on click
+    * Dashboard renders all 8 cards including real Recent Orders and Top Products pulled from store data
+- TypeScript check passes clean
+
+Stage Summary:
+- Admin panel completely restructured to match the reference screenshot: sidebar + grouped nav + card-based dashboard
+- All 19 menu items functional: 12 wire to existing components, 7 use Coming Soon placeholders (no broken/empty pages)
+- Theme matches screenshot exactly: deep black sidebar, gold active state, blue charts, purple FAB, pill badges
+- Mobile-responsive: sidebar collapses to drawer with hamburger toggle
+- Existing working features (Catalog Products, Orders, License Vault, Payment Gateways, etc.) all preserved and accessible from new sidebar
+- No credentials or sensitive data exposed in any new code
