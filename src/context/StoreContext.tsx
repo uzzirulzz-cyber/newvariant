@@ -12,7 +12,14 @@ import {
   AdminLog,
   ProductVariation,
   ProductType,
-  NavItem
+  NavItem,
+  IptvServer,
+  IptvCredential,
+  WooCommerceConnection,
+  SyncConflict,
+  SubscriptionPlan,
+  CustomerSubscription,
+  BillingCycle,
 } from '../types';
 import {
   INITIAL_CATEGORIES,
@@ -23,7 +30,13 @@ import {
   INITIAL_G2G_CONNECTOR,
   INITIAL_COUPONS,
   INITIAL_ADMIN_LOGS,
-  INITIAL_NAV_ITEMS
+  INITIAL_NAV_ITEMS,
+  INITIAL_IPTV_SERVERS,
+  INITIAL_IPTV_CREDENTIALS,
+  INITIAL_WOOCOMMERCE_CONNECTIONS,
+  INITIAL_SYNC_CONFLICTS,
+  INITIAL_SUBSCRIPTION_PLANS,
+  INITIAL_CUSTOMER_SUBSCRIPTIONS,
 } from '../data/mockData';
 
 export interface CartItem {
@@ -157,6 +170,34 @@ export interface StoreContextType {
   currency: { code: string; symbol: string; rate: number };
   setCurrency: (c: { code: string; symbol: string; rate: number }) => void;
   formatPrice: (usdPrice: number) => string;
+
+  // ====== IPTV M3U Servers ======
+  iptvServers: IptvServer[];
+  iptvCredentials: IptvCredential[];
+  addIptvServer: (server: Omit<IptvServer, 'id' | 'lastCheckedAt' | 'activeConnections'>) => void;
+  toggleIptvServer: (id: string) => void;
+  deleteIptvServer: (id: string) => void;
+  refreshIptvServerHealth: (id: string) => void;
+  provisionIptvCredential: (credential: { assignedTo: string; serverId: string; expiresAt: string }) => void;
+  revokeIptvCredential: (id: string) => void;
+
+  // ====== WooCommerce Bridge ======
+  wooCommerceConnections: WooCommerceConnection[];
+  syncConflicts: SyncConflict[];
+  addWooCommerceConnection: (conn: Omit<WooCommerceConnection, 'id' | 'lastSyncAt' | 'productsSynced' | 'ordersSynced' | 'pendingConflicts'>) => void;
+  toggleWooCommerceConnection: (id: string) => void;
+  deleteWooCommerceConnection: (id: string) => void;
+  syncWooCommerceConnection: (id: string) => void;
+  resolveSyncConflict: (id: string, resolution: 'resolved_local' | 'resolved_remote') => void;
+
+  // ====== Subscriptions ======
+  subscriptionPlans: SubscriptionPlan[];
+  customerSubscriptions: CustomerSubscription[];
+  createSubscriptionPlan: (plan: Omit<SubscriptionPlan, 'id' | 'subscribers' | 'mrr'>) => void;
+  updateSubscriptionPlan: (id: string, updates: Partial<SubscriptionPlan>) => void;
+  archiveSubscriptionPlan: (id: string) => void;
+  retryFailedSubscription: (id: string) => void;
+  cancelSubscription: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -181,6 +222,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isCustomerPortalOpen, setIsCustomerPortalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  // ====== IPTV M3U Servers state ======
+  const [iptvServers, setIptvServers] = useState<IptvServer[]>(INITIAL_IPTV_SERVERS);
+  const [iptvCredentials, setIptvCredentials] = useState<IptvCredential[]>(INITIAL_IPTV_CREDENTIALS);
+
+  // ====== WooCommerce Bridge state ======
+  const [wooCommerceConnections, setWooCommerceConnections] = useState<WooCommerceConnection[]>(INITIAL_WOOCOMMERCE_CONNECTIONS);
+  const [syncConflicts, setSyncConflicts] = useState<SyncConflict[]>(INITIAL_SYNC_CONFLICTS);
+
+  // ====== Subscriptions state ======
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>(INITIAL_SUBSCRIPTION_PLANS);
+  const [customerSubscriptions, setCustomerSubscriptions] = useState<CustomerSubscription[]>(INITIAL_CUSTOMER_SUBSCRIPTIONS);
 
   const [cart, setCart] = useState<CartItem[]>([
     {
@@ -523,6 +576,221 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast('success', 'Order Status Updated', `Order #${orderId} set to ${status}.`);
   };
 
+  // =========================================================
+  // IPTV M3U — Server & Credential management
+  // =========================================================
+
+  const addIptvServer = (server: Omit<IptvServer, 'id' | 'lastCheckedAt' | 'activeConnections'>) => {
+    const newServer: IptvServer = {
+      ...server,
+      id: `iptv-${Date.now()}`,
+      activeConnections: 0,
+      lastCheckedAt: new Date().toISOString(),
+    };
+    setIptvServers(prev => [...prev, newServer]);
+    addToast('success', 'Server Added', `${newServer.name} added to IPTV server registry.`);
+  };
+
+  const toggleIptvServer = (id: string) => {
+    setIptvServers(prev => prev.map(s => s.id === id ? {
+      ...s,
+      isActive: !s.isActive,
+      status: !s.isActive ? 'online' : 'offline',
+      activeConnections: !s.isActive ? s.activeConnections : 0,
+    } : s));
+    const target = iptvServers.find(s => s.id === id);
+    if (target) {
+      addToast('info', target.isActive ? 'Server Paused' : 'Server Activated', `${target.name} is now ${target.isActive ? 'paused' : 'live'}.`);
+    }
+  };
+
+  const deleteIptvServer = (id: string) => {
+    const target = iptvServers.find(s => s.id === id);
+    setIptvServers(prev => prev.filter(s => s.id !== id));
+    // Revoke any credentials assigned to this server
+    setIptvCredentials(prev => prev.map(c => c.serverId === id ? { ...c, status: 'revoked' as const } : c));
+    if (target) addToast('info', 'Server Removed', `${target.name} removed from registry.`);
+  };
+
+  const refreshIptvServerHealth = (id: string) => {
+    const now = new Date().toISOString();
+    setIptvServers(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      // Simulate a fresh health probe — jitter the uptime/buffer slightly so the user sees a change
+      const jitterUptime = s.status === 'online' ? Math.min(99.99, s.uptime + (Math.random() * 0.05)) : s.uptime;
+      const jitterBuffer = s.status === 'online' ? Math.max(0.1, s.bufferRate - (Math.random() * 0.1)) : s.bufferRate;
+      return { ...s, lastCheckedAt: now, uptime: Number(jitterUptime.toFixed(2)), bufferRate: Number(jitterBuffer.toFixed(2)) };
+    }));
+    const target = iptvServers.find(s => s.id === id);
+    if (target) addToast('success', 'Health Re-checked', `${target.name} probes completed at ${new Date().toLocaleTimeString()}.`);
+  };
+
+  const provisionIptvCredential = (credential: { assignedTo: string; serverId: string; expiresAt: string }) => {
+    const server = iptvServers.find(s => s.id === credential.serverId);
+    if (!server) {
+      addToast('error', 'Provisioning Failed', 'Selected server no longer exists.');
+      return;
+    }
+    const newCred: IptvCredential = {
+      id: `iptv-cred-${Date.now()}`,
+      username: `pb_user_${Math.floor(10000 + Math.random() * 89999)}`,
+      // Real password is never persisted client-side; only a masked placeholder is stored.
+      passwordMasked: '••••••••••••',
+      assignedTo: credential.assignedTo,
+      serverId: credential.serverId,
+      serverName: server.name,
+      expiresAt: credential.expiresAt,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+    setIptvCredentials(prev => [newCred, ...prev]);
+    // Bump the server's active connection count
+    setIptvServers(prev => prev.map(s => s.id === credential.serverId ? { ...s, activeConnections: s.activeConnections + 1 } : s));
+    addToast('success', 'Credential Provisioned', `IPTV access for ${credential.assignedTo} issued on ${server.name}.`);
+  };
+
+  const revokeIptvCredential = (id: string) => {
+    const target = iptvCredentials.find(c => c.id === id);
+    setIptvCredentials(prev => prev.map(c => c.id === id ? { ...c, status: 'revoked' } : c));
+    // Decrement the server's active connection count
+    if (target) {
+      setIptvServers(prev => prev.map(s => s.id === target.serverId ? { ...s, activeConnections: Math.max(0, s.activeConnections - 1) } : s));
+      addToast('info', 'Credential Revoked', `Access for ${target.assignedTo} has been revoked.`);
+    }
+  };
+
+  // =========================================================
+  // WooCommerce Bridge — connections & conflict resolution
+  // =========================================================
+
+  const addWooCommerceConnection = (conn: Omit<WooCommerceConnection, 'id' | 'lastSyncAt' | 'productsSynced' | 'ordersSynced' | 'pendingConflicts'>) => {
+    const newConn: WooCommerceConnection = {
+      ...conn,
+      id: `woo-conn-${Date.now()}`,
+      lastSyncAt: new Date().toISOString(),
+      productsSynced: 0,
+      ordersSynced: 0,
+      pendingConflicts: 0,
+    };
+    setWooCommerceConnections(prev => [...prev, newConn]);
+    addToast('success', 'Store Connected', `${newConn.storeName} is now linked to PlayBeat.`);
+  };
+
+  const toggleWooCommerceConnection = (id: string) => {
+    setWooCommerceConnections(prev => prev.map(c => c.id === id ? {
+      ...c,
+      status: c.status === 'disconnected' ? 'connected' : 'disconnected',
+    } : c));
+    const target = wooCommerceConnections.find(c => c.id === id);
+    if (target) addToast('info', target.status === 'disconnected' ? 'Store Reconnected' : 'Store Disconnected', `${target.storeName} is now ${target.status === 'disconnected' ? 'connected' : 'disconnected'}.`);
+  };
+
+  const deleteWooCommerceConnection = (id: string) => {
+    const target = wooCommerceConnections.find(c => c.id === id);
+    setWooCommerceConnections(prev => prev.filter(c => c.id !== id));
+    // Drop any pending conflicts for this connection
+    setSyncConflicts(prev => prev.filter(conf => conf.connectionId !== id));
+    if (target) addToast('info', 'Connection Removed', `${target.storeName} has been delinked.`);
+  };
+
+  const syncWooCommerceConnection = (id: string) => {
+    const target = wooCommerceConnections.find(c => c.id === id);
+    if (!target) return;
+    // Mark as syncing
+    setWooCommerceConnections(prev => prev.map(c => c.id === id ? { ...c, status: 'syncing' } : c));
+    addToast('info', 'Sync Started', `Pulling products and orders from ${target.storeName}...`);
+    // Simulate async sync completion after ~1s
+    setTimeout(() => {
+      setWooCommerceConnections(prev => prev.map(c => c.id === id ? {
+        ...c,
+        status: 'connected',
+        lastSyncAt: new Date().toISOString(),
+        productsSynced: c.productsSynced + Math.floor(Math.random() * 5),
+        ordersSynced: c.ordersSynced + Math.floor(Math.random() * 12),
+      } : c));
+      addToast('success', 'Sync Complete', `${target.storeName} is up to date.`);
+    }, 1100);
+  };
+
+  const resolveSyncConflict = (id: string, resolution: 'resolved_local' | 'resolved_remote') => {
+    const target = syncConflicts.find(c => c.id === id);
+    if (!target) return;
+    setSyncConflicts(prev => prev.map(c => c.id === id ? { ...c, status: resolution } : c));
+    // Decrement the connection's pending-conflict counter
+    setWooCommerceConnections(prev => prev.map(c => c.id === target.connectionId ? {
+      ...c,
+      pendingConflicts: Math.max(0, c.pendingConflicts - 1),
+    } : c));
+    const label = resolution === 'resolved_local' ? 'local (PlayBeat)' : 'remote (WooCommerce)';
+    addToast('success', 'Conflict Resolved', `${target.productTitle} kept ${label} value.`);
+  };
+
+  // =========================================================
+  // Subscriptions — plans & customer subscriptions
+  // =========================================================
+
+  const createSubscriptionPlan = (plan: Omit<SubscriptionPlan, 'id' | 'subscribers' | 'mrr'>) => {
+    const newPlan: SubscriptionPlan = {
+      ...plan,
+      id: `plan-${Date.now()}`,
+      subscribers: 0,
+      mrr: 0,
+    };
+    setSubscriptionPlans(prev => [newPlan, ...prev]);
+    addToast('success', 'Plan Created', `${newPlan.name} (${newPlan.billingCycle}) is now live.`);
+  };
+
+  const updateSubscriptionPlan = (id: string, updates: Partial<SubscriptionPlan>) => {
+    setSubscriptionPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    const target = subscriptionPlans.find(p => p.id === id);
+    if (target) addToast('success', 'Plan Updated', `${target.name} has been updated.`);
+  };
+
+  const archiveSubscriptionPlan = (id: string) => {
+    setSubscriptionPlans(prev => prev.map(p => p.id === id ? {
+      ...p,
+      status: 'archived',
+      isActive: false,
+    } : p));
+    const target = subscriptionPlans.find(p => p.id === id);
+    if (target) addToast('info', 'Plan Archived', `${target.name} is no longer available for new sign-ups.`);
+  };
+
+  const retryFailedSubscription = (id: string) => {
+    const target = customerSubscriptions.find(s => s.id === id);
+    if (!target) return;
+    // Simulate a retry — 75% success rate
+    const success = Math.random() < 0.75;
+    if (success) {
+      setCustomerSubscriptions(prev => prev.map(s => s.id === id ? {
+        ...s,
+        status: 'active',
+        failedAttempts: 0,
+        renewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      } : s));
+      addToast('success', 'Payment Recovered', `${target.customerName}'s subscription is now active.`);
+    } else {
+      setCustomerSubscriptions(prev => prev.map(s => s.id === id ? {
+        ...s,
+        failedAttempts: s.failedAttempts + 1,
+      } : s));
+      addToast('error', 'Retry Failed', `Payment attempt ${target.failedAttempts + 1} failed for ${target.customerName}.`);
+    }
+  };
+
+  const cancelSubscription = (id: string) => {
+    const target = customerSubscriptions.find(s => s.id === id);
+    if (!target) return;
+    setCustomerSubscriptions(prev => prev.map(s => s.id === id ? { ...s, status: 'cancelled' } : s));
+    // Decrement the plan's subscriber count
+    setSubscriptionPlans(prev => prev.map(p => p.id === target.planId ? {
+      ...p,
+      subscribers: Math.max(0, p.subscribers - 1),
+      mrr: Math.max(0, p.mrr - (target.billingCycle === 'yearly' ? target.amount / 12 : target.amount)),
+    } : p));
+    addToast('info', 'Subscription Cancelled', `${target.customerName}'s ${target.planName} has been cancelled.`);
+  };
+
   const updateContent = (newContent: Partial<ContentSection>) => {
     setContent(prev => ({ ...prev, ...newContent }));
     fetch('/api/content', {
@@ -752,10 +1020,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toasts,
         addToast,
         removeToast,
-        
+
         currency,
         setCurrency,
-        formatPrice
+        formatPrice,
+
+        // IPTV M3U
+        iptvServers,
+        iptvCredentials,
+        addIptvServer,
+        toggleIptvServer,
+        deleteIptvServer,
+        refreshIptvServerHealth,
+        provisionIptvCredential,
+        revokeIptvCredential,
+
+        // WooCommerce Bridge
+        wooCommerceConnections,
+        syncConflicts,
+        addWooCommerceConnection,
+        toggleWooCommerceConnection,
+        deleteWooCommerceConnection,
+        syncWooCommerceConnection,
+        resolveSyncConflict,
+
+        // Subscriptions
+        subscriptionPlans,
+        customerSubscriptions,
+        createSubscriptionPlan,
+        updateSubscriptionPlan,
+        archiveSubscriptionPlan,
+        retryFailedSubscription,
+        cancelSubscription
       }}
     >
       {children}

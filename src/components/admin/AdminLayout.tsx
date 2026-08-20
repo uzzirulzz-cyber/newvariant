@@ -14,6 +14,9 @@ import { SystemStatusView } from './SystemStatusView';
 import { AdminRolesView } from './AdminRolesView';
 import { ContentManager } from './ContentManager';
 import { ComingSoonView } from './ComingSoonView';
+import { IptvM3uManager } from './IptvM3uManager';
+import { WooCommerceBridge } from './WooCommerceBridge';
+import { SubscriptionsManager } from './SubscriptionsManager';
 import {
   LayoutDashboard,
   Globe,
@@ -157,17 +160,6 @@ const COMING_SOON_META: Record<string, { description: string; features: string[]
       'Exportable CSV / JSON snapshots for BI tools',
     ],
   },
-  subscriptions: {
-    description:
-      'Manage recurring subscription plans, billing cycles, renewal failures, and customer subscription state across digital services.',
-    features: [
-      'Plan builder with trial, monthly, and yearly cadences',
-      'Auto-renewal monitoring with dunning email sequences',
-      'Pause / resume / cancel controls per customer',
-      'Proration calculator for mid-cycle plan changes',
-      'Revenue-at-risk alert for failed renewals',
-    ],
-  },
   discounts: {
     description:
       'Build and track promo codes, auto-apply coupons, BOGO offers, and tiered discounts with usage limits and expiry windows.',
@@ -199,28 +191,6 @@ const COMING_SOON_META: Record<string, { description: string; features: string[]
       'Canned response library with merge variables',
       'Internal notes and @mentions between agents',
       'Customer-side satisfaction rating after resolution',
-    ],
-  },
-  iptv: {
-    description:
-      'Provision and monitor IPTV M3U server endpoints, manage playlist lineups, and dispatch credentials to subscribers.',
-    features: [
-      'M3U source registry with health check and failover',
-      'Channel lineup editor with category grouping',
-      'Subscriber credential provisioning and rotation',
-      'Buffer-rate and uptime monitoring per server',
-      'Geo-restriction rules for content licensing',
-    ],
-  },
-  woocommerce: {
-    description:
-      'Two-way bridge between PlayBeat and WooCommerce stores — sync products, inventory, and orders across both platforms.',
-    features: [
-      'OAuth-based connection to one or more WooCommerce stores',
-      'Product / variant sync with field-level mapping',
-      'Order import with auto-resolve for SKU mismatches',
-      'Inventory reservation on both sides to prevent oversell',
-      'Conflict queue for manual review on divergent edits',
     ],
   },
   'social-automation': {
@@ -346,6 +316,18 @@ export const AdminLayout: React.FC = () => {
         return <MarketingAutomationView />;
       case 'g2g':
         return <G2GConnectorView />;
+
+      // IPTV M3U Servers — NEW
+      case 'iptv':
+        return <IptvM3uManager />;
+
+      // WooCommerce Bridge — NEW
+      case 'woocommerce':
+        return <WooCommerceBridge />;
+
+      // Subscriptions — NEW
+      case 'subscriptions':
+        return <SubscriptionsManager />;
 
       // Growth & Security (existing)
       case 'roles':

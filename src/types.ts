@@ -420,3 +420,114 @@ export interface ContentSection {
     email: string;
   };
 }
+
+// ============================================
+// IPTV M3U SERVERS
+// ============================================
+
+export type IptvServerStatus = 'online' | 'offline' | 'degraded';
+
+export interface IptvServer {
+  id: string;
+  name: string;
+  endpointUrl: string;
+  playlistUrl: string;
+  status: IptvServerStatus;
+  channels: number;
+  activeConnections: number;
+  maxConnections: number;
+  uptime: number; // percentage 0–100
+  bufferRate: number; // percentage 0–1
+  location: string;
+  provider: string;
+  lastCheckedAt: string;
+  isActive: boolean;
+}
+
+export type IptvCredentialStatus = 'active' | 'expired' | 'revoked';
+
+export interface IptvCredential {
+  id: string;
+  username: string;
+  passwordMasked: string; // never expose the real password
+  assignedTo: string; // customer email or name
+  serverId: string;
+  serverName: string;
+  expiresAt: string;
+  status: IptvCredentialStatus;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+// ============================================
+// WOOCOMMERCE BRIDGE
+// ============================================
+
+export type WooCommerceConnectionStatus = 'connected' | 'disconnected' | 'syncing' | 'error';
+
+export interface WooCommerceConnection {
+  id: string;
+  storeName: string;
+  storeUrl: string;
+  status: WooCommerceConnectionStatus;
+  consumerKeyMasked: string; // never expose real key
+  environment: 'production' | 'staging';
+  lastSyncAt: string;
+  productsSynced: number;
+  ordersSynced: number;
+  pendingConflicts: number;
+  autoSync: boolean;
+  syncIntervalMinutes: number;
+}
+
+export type SyncConflictField = 'price' | 'stock' | 'title' | 'sku';
+export type SyncConflictStatus = 'pending' | 'resolved_local' | 'resolved_remote';
+
+export interface SyncConflict {
+  id: string;
+  connectionId: string;
+  storeName: string;
+  productTitle: string;
+  productSku: string;
+  field: SyncConflictField;
+  localValue: string;
+  remoteValue: string;
+  status: SyncConflictStatus;
+  detectedAt: string;
+}
+
+// ============================================
+// SUBSCRIPTIONS
+// ============================================
+
+export type BillingCycle = 'weekly' | 'monthly' | 'yearly';
+export type SubscriptionPlanStatus = 'active' | 'archived';
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  billingCycle: BillingCycle;
+  price: number;
+  trialDays: number;
+  isActive: boolean;
+  status: SubscriptionPlanStatus;
+  subscribers: number;
+  mrr: number; // monthly recurring revenue contribution
+}
+
+export type CustomerSubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'expired';
+
+export interface CustomerSubscription {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  planId: string;
+  planName: string;
+  billingCycle: BillingCycle;
+  status: CustomerSubscriptionStatus;
+  startedAt: string;
+  renewsAt: string;
+  amount: number;
+  failedAttempts: number;
+}

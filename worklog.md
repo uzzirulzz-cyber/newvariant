@@ -75,3 +75,61 @@ Stage Summary:
 - Mobile-responsive: sidebar collapses to drawer with hamburger toggle
 - Existing working features (Catalog Products, Orders, License Vault, Payment Gateways, etc.) all preserved and accessible from new sidebar
 - No credentials or sensitive data exposed in any new code
+
+---
+Task ID: 3
+Agent: main
+Task: Build out 3 placeholder admin pages (IPTV M3U Servers, WooCommerce Bridge, Subscriptions) with real functionality — types, mock data, CRUD operations in StoreContext, full UI components, wired into AdminLayout.
+
+Work Log:
+- Added 6 new TypeScript types to src/types.ts: IptvServer, IptvCredential, WooCommerceConnection, SyncConflict, SubscriptionPlan, CustomerSubscription (plus their status union types)
+- Added ~370 lines of mock data to src/data/mockData.ts:
+    * 4 IPTV servers (Frankfurt, Virginia, Singapore, Dubai — mix of online/degraded/offline)
+    * 4 IPTV credentials (active, active, expired, revoked)
+    * 3 WooCommerce connections (2 connected, 1 disconnected)
+    * 3 sync conflicts (price/stock/title on PlayBeat Gear Store)
+    * 5 subscription plans (IPTV Monthly/Yearly, Spotify Family, Netflix 4K, archived VPN)
+    * 7 customer subscriptions (active, trialing, past_due x2, cancelled)
+- Extended src/context/StoreContext.tsx with 6 new state hooks + 17 new CRUD functions:
+    * IPTV: addIptvServer, toggleIptvServer, deleteIptvServer (auto-revokes assigned creds), refreshIptvServerHealth (jitters uptime/buffer), provisionIptvCredential (auto-generates username, masks password, bumps server active count), revokeIptvCredential
+    * WooCommerce: addWooCommerceConnection (masks consumer key), toggleWooCommerceConnection, deleteWooCommerceConnection (clears related conflicts), syncWooCommerceConnection (async 1.1s transition through "syncing" state), resolveSyncConflict (decrements pending counter)
+    * Subscriptions: createSubscriptionPlan (starts at 0 subscribers/MRR), updateSubscriptionPlan, archiveSubscriptionPlan, retryFailedSubscription (75% success rate with toast feedback), cancelSubscription (decrements plan subscribers + MRR)
+- Built src/components/admin/IptvM3uManager.tsx (~580 lines):
+    * Header with stats strip (Total Servers / Channels / Active Credentials / Avg Uptime)
+    * Server grid (responsive 1/2 cols) with status pill, endpoint URL, 4 metrics (channels/uptime/buffer/capacity), capacity bar, Re-check / Pause / Delete actions
+    * Credentials table (username with copy button, assigned-to, server, expires, status, revoke action)
+    * Add Server modal with 5 fields
+    * Provision Credential modal — auto-generates username, never stores real password
+- Built src/components/admin/WooCommerceBridge.tsx (~600 lines):
+    * Header with stats strip (Connections / Products Synced / Orders Synced / Pending Conflicts)
+    * Connection cards (responsive 1/2 cols) with status, environment badge, auto-sync badge, masked consumer key, 3 sync stats, Sync Now / Disconnect / Delete actions
+    * Sync conflict queue with expand-to-resolve cards (KEEP LOCAL / KEEP REMOTE buttons)
+    * Recently-resolved conflict strip
+    * 2-step Connect Store wizard (Store Info → API Credentials) with credential-masking note
+- Built src/components/admin/SubscriptionsManager.tsx (~560 lines):
+    * Header with stats strip (Total MRR / Active Subs / Past Due / Churn Rate)
+    * Dunning Queue at top — past-due subscriptions with Retry Charge (75% success) + Cancel actions
+    * Plan grid (responsive 1/2/3 cols) with billing cycle badge, trial badge, price, subscribers/MRR metrics, Archive action
+    * Customer subscriptions table with avatar, plan, amount, started/renews dates, status pill with icon, Retry / Cancel actions
+    * Status filter tabs (All / Active / Trialing / Past Due / Cancelled)
+    * Create Plan modal with 6 fields + activate-on-creation checkbox
+- Updated src/components/admin/AdminLayout.tsx to import and wire the 3 new components into the renderActiveView() switch (replacing their previous ComingSoonView fallbacks)
+- Removed the 3 entries (iptv, woocommerce, subscriptions) from the COMING_SOON_META map since they now have functional implementations
+- Verified end-to-end with Agent Browser:
+    * IPTV page: 4 servers render correctly, Provision Credential modal opens, Add Server modal accepts input and creates a new "Brazil — São Paulo" server (count goes 4 → 5)
+    * WooCommerce page: 3 connections render correctly, 3 pending conflicts visible, clicking KEEP LOCAL resolves a conflict and decrements the queue (3 → 2 pending), toast confirms "kept local value"
+    * Subscriptions page: 5 plans + 7 subscriptions render correctly, Dunning Queue shows 2 past due, clicking RETRY CHARGE recovers Maria Silva (queue drops 2 → 1, toast confirms), Create Plan modal creates "Disney+ Premium Annual" plan (plan count goes 5 → 6, toast confirms)
+- TypeScript check passes clean (no errors)
+- Dev server healthy (HTTP 200)
+- No console errors during any of the CRUD operations
+
+Stage Summary:
+- 3 fully-functional admin pages now replace their ComingSoonView placeholders
+- All CRUD operations work end-to-end with proper toast feedback:
+    * IPTV: add server, pause/activate, delete (with credential cascade), refresh health, provision credential, revoke credential
+    * WooCommerce: connect store (2-step wizard), disconnect/reconnect, delete (with conflict cleanup), sync now (async transition), resolve conflict (keep local/remote)
+    * Subscriptions: create plan, archive plan, retry failed charge (75% success rate), cancel subscription (auto-decrements plan subscriber count + MRR)
+- Theme and visual language consistent with the admin sidebar redesign from Task 2 (deep black sidebar, gold/blue/purple accents, .admin-card / .admin-pill-* utilities)
+- No sensitive data exposed: passwords always masked, consumer keys masked at rest, secrets transmitted once and discarded
+- Mock data is realistic (real city names, real provider names, deterministic timestamps) so the admin demo feels production-ready
+- The admin now has 15 functional pages (12 pre-existing + 3 new) and 4 still-placeholder pages (Website Builder CMS, Analytics & Traffic, Discounts & Coupons, Customer Accounts, Support Tickets, Social Automation, TikTok Leads Engine, Email & SMS Campaigns, Financial Balance, JazzCash & Merchant, Payment Proofs, Security & Audit Logs)
