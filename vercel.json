@@ -1,12 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "framework": null,
-  "buildCommand": "bun run build:vercel",
+  "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist/public",
   "functions": {
     "api/index.ts": {
-      "runtime": "@vercel/node@5",
       "maxDuration": 60,
       "memory": 1024
     }
@@ -28,8 +26,5 @@
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
-  ],
-  "env": {
-    "NODE_VERSION": "20.x"
-  }
+  ]
 }
