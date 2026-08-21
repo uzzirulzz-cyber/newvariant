@@ -487,19 +487,7 @@ export const Header: React.FC = () => {
                       Orders & Key Vault
                     </button>
 
-                    <button
-                      onClick={() => {
-                        setActiveView(activeView === 'store' ? 'admin' : 'store');
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-[#287BFF] hover:bg-[#1769FF]/15 rounded-xl transition-colors"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Shield className="w-3.5 h-3.5" />
-                        {activeView === 'store' ? 'Admin Console' : 'Storefront'}
-                      </span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
+                    {/* Admin Console access removed from storefront — accessible only via /admin URL */}
 
                     <button
                       onClick={() => {
@@ -517,18 +505,7 @@ export const Header: React.FC = () => {
             </AnimatePresence>
           </div>
 
-          {/* ADMIN CONSOLE QUICK LAUNCH BUTTON (DESKTOP) */}
-          <button
-            onClick={() => setActiveView(activeView === 'store' ? 'admin' : 'store')}
-            className={`hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-              activeView === 'admin'
-                ? 'btn-primary'
-                : 'btn-secondary'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5 text-white" />
-            <span>{activeView === 'admin' ? 'Storefront' : 'Admin'}</span>
-          </button>
+          {/* Admin Console button removed from storefront — accessible only via /admin URL */}
 
           {/* MOBILE MENU TOGGLE */}
           <button
@@ -625,16 +602,7 @@ export const Header: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  setActiveView(activeView === 'store' ? 'admin' : 'store');
-                  setIsMobileNavOpen(false);
-                }}
-                className="flex items-center justify-center gap-2 p-3 rounded-xl btn-primary text-xs font-bold uppercase tracking-widest"
-              >
-                <Shield className="w-4 h-4" />
-                {activeView === 'admin' ? 'Store' : 'Admin'}
-              </button>
+              {/* Admin button removed from mobile nav — accessible only via /admin URL */}
 
               <button
                 onClick={() => {

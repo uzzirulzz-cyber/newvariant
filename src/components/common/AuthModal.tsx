@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { useAuthStore } from '../../store/useAuthStore';
 import {
-  X, Shield, UserCheck, CheckCircle2, Sparkles, Mail, Lock, Eye, EyeOff,
-  Loader2, AlertCircle, User as UserIcon, ArrowRight, Key,
+  X, Shield, Mail, Lock, Eye, EyeOff,
+  Loader2, AlertCircle, User as UserIcon, ArrowRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -16,7 +17,7 @@ type FormErrors = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, currentUser, setCurrentUser, switchUserRole, addToast } = useStore();
+  const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, addToast } = useStore();
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -28,13 +29,6 @@ export const AuthModal: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
-
-  const availableRoles: { role: any; label: string; desc: string }[] = [
-    { role: 'super_admin', label: 'Super Admin', desc: 'Full platform access, G2G Sourcing, Inventory Vault, Settings' },
-    { role: 'product_manager', label: 'Product Manager', desc: 'Catalog, pricing, variation protection & import queues' },
-    { role: 'order_manager', label: 'Order Manager', desc: 'Order fulfillment, digital keys dispatch & DHL tracking' },
-    { role: 'customer', label: 'Customer', desc: 'Storefront shopper with instant digital key locker' }
-  ];
 
   const resetForm = () => {
     setEmail(''); setName(''); setPassword(''); setConfirmPassword('');
@@ -75,7 +69,13 @@ export const AuthModal: React.FC = () => {
       const data = await res.json();
 
       if (data.success) {
+        // Sync both the legacy StoreContext and the new Zustand auth store
         setCurrentUser(data.user);
+        useAuthStore.setState({
+          currentUser: data.user,
+          token: data.token,
+          isAuthenticated: true,
+        });
         addToast('success', isLoginMode ? 'Logged In' : 'Account Created', `Welcome, ${data.user.name}!`);
         setIsAuthModalOpen(false);
         resetForm();
@@ -135,44 +135,14 @@ export const AuthModal: React.FC = () => {
               </button>
             </div>
 
-            {/* Quick Demo Switcher (only for login mode) */}
-            {isLoginMode && (
-              <div className="mt-4 space-y-3">
-                <div className="text-[11px] font-bold text-neutral-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-red-400" />
-                  <span>Instant Demo Role Switcher</span>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {availableRoles.map((r) => (
-                    <button key={r.role} onClick={() => { switchUserRole(r.role); setIsAuthModalOpen(false); }} disabled={isSubmitting}
-                      className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        currentUser.role === r.role ? 'bg-red-500/15 border-red-500/40 text-white shadow-sm shadow-red-950/40' : 'bg-[#141622] border-white/5 hover:bg-white/5 text-neutral-300'
-                      }`}>
-                      <div className={`p-2 rounded-lg mt-0.5 ${currentUser.role === r.role ? 'bg-red-600 text-white' : 'bg-white/5 text-neutral-400'}`}>
-                        <UserCheck className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold font-display flex items-center justify-between">
-                          <span>{r.label}</span>
-                          {currentUser.role === r.role && (
-                            <span className="text-[10px] text-red-400 font-mono flex items-center gap-1 font-bold">
-                              <CheckCircle2 className="w-3 h-3" /> ACTIVE
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-neutral-400 mt-0.5 leading-snug">{r.desc}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            {/* Default admin hint */}
+            <div className="mt-4 p-3 rounded-xl bg-blue-500/5 border border-blue-500/15 text-[11px] text-neutral-400 flex items-start gap-2">
+              <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-neutral-300 font-semibold">Default admin:</span>{' '}
+                <span className="font-mono text-white">admin@playbeat.digital</span> ·{' '}
+                Sign up creates a customer account. Staff access is managed in the admin panel.
               </div>
-            )}
-
-            {/* Divider */}
-            <div className="my-5 flex items-center gap-3 text-[10px] font-mono text-neutral-500 uppercase tracking-widest">
-              <div className="flex-1 h-px bg-white/10" />
-              <span>{isLoginMode ? 'or sign in with email' : 'register with email'}</span>
-              <div className="flex-1 h-px bg-white/10" />
             </div>
 
             {/* API error */}

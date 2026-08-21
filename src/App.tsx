@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -19,8 +19,53 @@ import { CustomerPortalModal } from './components/storefront/CustomerPortalModal
 import { ProjectorComparisonModal } from './components/storefront/ProjectorComparisonModal';
 import { AdminLayout } from './components/admin/AdminLayout';
 
+/**
+ * Check if the current URL path is /admin.
+ * Supports /admin, /admin/, /admin?anything, /admin#anything
+ */
+function isAdminUrl(): boolean {
+  const path = window.location.pathname.replace(/\/+$/, ''); // strip trailing slashes
+  return path === '/admin' || path.endsWith('/admin');
+}
+
 const AppContent: React.FC = () => {
-  const { activeView } = useStore();
+  const { activeView, setActiveView } = useStore();
+
+  // ── URL-based routing ──────────────────────────────────────
+  // On mount, check if the URL is /admin and switch to admin view.
+  // Also listen for popstate (browser back/forward) so navigation works.
+  useEffect(() => {
+    // Set initial view based on URL
+    if (isAdminUrl() && activeView !== 'admin') {
+      setActiveView('admin');
+    }
+
+    // Listen for browser back/forward
+    const handlePopState = () => {
+      if (isAdminUrl()) {
+        setActiveView('admin');
+      } else {
+        setActiveView('store');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When activeView changes, update the URL to match
+  useEffect(() => {
+    const currentPath = window.location.pathname.replace(/\/+$/, '');
+    const shouldBeAdmin = activeView === 'admin';
+    const urlIsAdmin = currentPath === '/admin' || currentPath.endsWith('/admin');
+
+    if (shouldBeAdmin && !urlIsAdmin) {
+      // Switching TO admin — push /admin to the URL
+      window.history.pushState({ view: 'admin' }, '', '/admin');
+    } else if (!shouldBeAdmin && urlIsAdmin) {
+      // Switching TO storefront — push / to the URL
+      window.history.pushState({ view: 'store' }, '', '/');
+    }
+  }, [activeView]);
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-zinc-200 selection:bg-red-600 selection:text-white font-sans antialiased">
@@ -38,10 +83,10 @@ const AppContent: React.FC = () => {
       <ProjectorComparisonModal />
 
       {activeView === 'admin' ? (
-        /* ADMIN DASHBOARD VIEW */
+        /* ADMIN DASHBOARD VIEW — only accessible via /admin URL */
         <AdminLayout />
       ) : (
-        /* STOREFRONT VIEW */
+        /* STOREFRONT VIEW — default landing page */
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="flex-1">
