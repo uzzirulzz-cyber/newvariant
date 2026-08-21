@@ -531,3 +531,220 @@ export interface CustomerSubscription {
   amount: number;
   failedAttempts: number;
 }
+
+// ============================================
+// WEBSITE BUILDER CMS
+// ============================================
+
+export type PageStatus = 'published' | 'draft' | 'scheduled';
+
+export interface WebsitePage {
+  id: string;
+  title: string;
+  slug: string;
+  status: PageStatus;
+  sections: string[]; // block IDs
+  lastEditedAt: string;
+  publishedAt?: string;
+  scheduledAt?: string;
+  seoTitle: string;
+  seoDescription: string;
+  canonicalUrl: string;
+}
+
+export interface BlockLibraryItem {
+  id: string;
+  name: string;
+  category: 'hero' | 'grid' | 'cta' | 'faq' | 'testimonial' | 'footer' | 'form';
+  preview: string;
+  usageCount: number;
+}
+
+// ============================================
+// ANALYTICS & TRAFFIC
+// ============================================
+
+export interface AnalyticsMetric {
+  label: string;
+  value: number;
+  change: number; // percentage change vs previous period
+  trend: 'up' | 'down' | 'flat';
+}
+
+export interface FunnelStep {
+  step: string;
+  visitors: number;
+  conversionRate: number; // percentage 0–100
+}
+
+// ============================================
+// DISCOUNTS & COUPONS — uses existing Coupon type
+// ============================================
+
+// ============================================
+// SUPPORT TICKETS
+// ============================================
+
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type TicketStatus = 'open' | 'in_progress' | 'waiting_on_customer' | 'resolved' | 'closed';
+export type TicketChannel = 'email' | 'whatsapp' | 'in_app' | 'social';
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  customerName: string;
+  customerEmail: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  channel: TicketChannel;
+  assignedTo: string;
+  slaMinutesRemaining: number; // negative if breached
+  createdAt: string;
+  lastReplyAt: string;
+  messageCount: number;
+}
+
+// ============================================
+// SOCIAL AUTOMATION
+// ============================================
+
+export type SocialPlatform = 'tiktok' | 'instagram' | 'x' | 'facebook' | 'linkedin';
+export type PostStatus = 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
+
+export interface ScheduledPost {
+  id: string;
+  content: string;
+  platforms: SocialPlatform[];
+  status: PostStatus;
+  scheduledAt: string;
+  publishedAt?: string;
+  engagement?: { likes: number; comments: number; shares: number };
+  mediaUrl?: string;
+  hashtags: string[];
+  createdBy: string;
+}
+
+// ============================================
+// TIKTOK LEADS ENGINE
+// ============================================
+
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'converted' | 'lost';
+
+export interface TikTokLead {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  campaign: string;
+  adGroup: string;
+  creative: string;
+  audience: string;
+  status: LeadStatus;
+  costPerLead: number;
+  capturedAt: string;
+  followedUpAt?: string;
+  convertedToCustomerId?: string;
+}
+
+// ============================================
+// EMAIL & SMS CAMPAIGNS
+// ============================================
+
+export type CampaignChannel = 'email' | 'sms' | 'both';
+export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused';
+export type CampaignTrigger = 'manual' | 'abandoned_cart' | 'post_purchase' | 'win_back' | 'welcome';
+
+export interface MarketingCampaign {
+  id: string;
+  name: string;
+  channel: CampaignChannel;
+  status: CampaignStatus;
+  trigger: CampaignTrigger;
+  audienceSize: number;
+  sentCount: number;
+  openRate: number; // percentage 0–100
+  clickRate: number; // percentage 0–100
+  bounceRate: number; // percentage 0–100
+  scheduledAt?: string;
+  sentAt?: string;
+  subject: string;
+  preview: string;
+}
+
+// ============================================
+// FINANCIAL BALANCE
+// ============================================
+
+export interface GatewayBalance {
+  id: string;
+  gateway: string;
+  available: number;
+  pending: number;
+  currency: string;
+  nextSettlementAt: string;
+  settlementFrequency: string;
+  icon: string;
+}
+
+// ============================================
+// JAZZCASH & MERCHANT
+// ============================================
+
+export type JazzCashTxStatus = 'success' | 'failed' | 'pending' | 'refunded';
+
+export interface JazzCashTransaction {
+  id: string;
+  reference: string;
+  customerName: string;
+  customerEmail: string;
+  amount: number;
+  status: JazzCashTxStatus;
+  method: 'wallet' | 'card' | 'iban' | 'qr';
+  merchantId: string;
+  timestamp: string;
+}
+
+// ============================================
+// PAYMENT PROOFS
+// ============================================
+
+export type ProofStatus = 'pending_review' | 'approved' | 'rejected' | 'linked';
+
+export interface PaymentProof {
+  id: string;
+  orderId?: string;
+  customerName: string;
+  customerEmail: string;
+  amount: number;
+  method: string;
+  fileName: string;
+  fileSizeKb: number;
+  ocrExtractedAmount?: number;
+  ocrExtractedReference?: string;
+  status: ProofStatus;
+  uploadedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
+// ============================================
+// SECURITY & AUDIT LOGS — extends existing AdminLog
+// ============================================
+
+export interface LoginAttempt {
+  id: string;
+  email: string;
+  ipAddress: string;
+  geo: string;
+  success: boolean;
+  timestamp: string;
+  userAgent: string;
+}
+
+export interface SecretRotation {
+  id: string;
+  secretName: string;
+  lastRotatedAt: string;
+  rotationIntervalDays: number;
+  isOverdue: boolean;
+}

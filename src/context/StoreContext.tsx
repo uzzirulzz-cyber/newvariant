@@ -20,6 +20,22 @@ import {
   SubscriptionPlan,
   CustomerSubscription,
   BillingCycle,
+  WebsitePage,
+  BlockLibraryItem,
+  AnalyticsMetric,
+  FunnelStep,
+  SupportTicket,
+  TicketStatus,
+  ScheduledPost,
+  TikTokLead,
+  LeadStatus,
+  MarketingCampaign,
+  GatewayBalance,
+  JazzCashTransaction,
+  PaymentProof,
+  ProofStatus,
+  LoginAttempt,
+  SecretRotation,
 } from '../types';
 import {
   INITIAL_CATEGORIES,
@@ -37,6 +53,19 @@ import {
   INITIAL_SYNC_CONFLICTS,
   INITIAL_SUBSCRIPTION_PLANS,
   INITIAL_CUSTOMER_SUBSCRIPTIONS,
+  INITIAL_WEBSITE_PAGES,
+  INITIAL_BLOCK_LIBRARY,
+  ANALYTICS_METRICS,
+  FUNNEL_STEPS,
+  INITIAL_SUPPORT_TICKETS,
+  INITIAL_SCHEDULED_POSTS,
+  INITIAL_TIKTOK_LEADS,
+  INITIAL_CAMPAIGNS,
+  INITIAL_GATEWAY_BALANCES,
+  INITIAL_JAZZCASH_TXS,
+  INITIAL_PAYMENT_PROOFS,
+  INITIAL_LOGIN_ATTEMPTS,
+  INITIAL_SECRET_ROTATIONS,
 } from '../data/mockData';
 
 export interface CartItem {
@@ -198,6 +227,53 @@ export interface StoreContextType {
   archiveSubscriptionPlan: (id: string) => void;
   retryFailedSubscription: (id: string) => void;
   cancelSubscription: (id: string) => void;
+
+  // ====== Website Builder ======
+  websitePages: WebsitePage[];
+  blockLibrary: BlockLibraryItem[];
+  createWebsitePage: (page: Omit<WebsitePage, 'id' | 'lastEditedAt'>) => void;
+  updateWebsitePage: (id: string, updates: Partial<WebsitePage>) => void;
+  publishWebsitePage: (id: string) => void;
+  deleteWebsitePage: (id: string) => void;
+
+  // ====== Analytics ======
+  analyticsMetrics: AnalyticsMetric[];
+  funnelSteps: FunnelStep[];
+
+  // ====== Support Tickets ======
+  supportTickets: SupportTicket[];
+  updateTicketStatus: (id: string, status: TicketStatus) => void;
+  assignTicket: (id: string, assignee: string) => void;
+
+  // ====== Social Automation ======
+  scheduledPosts: ScheduledPost[];
+  schedulePost: (post: Omit<ScheduledPost, 'id'>) => void;
+  deleteScheduledPost: (id: string) => void;
+
+  // ====== TikTok Leads ======
+  tiktokLeads: TikTokLead[];
+  updateLeadStatus: (id: string, status: LeadStatus) => void;
+
+  // ====== Email & SMS Campaigns ======
+  campaigns: MarketingCampaign[];
+  pauseCampaign: (id: string) => void;
+  resumeCampaign: (id: string) => void;
+
+  // ====== Financial Balance ======
+  gatewayBalances: GatewayBalance[];
+
+  // ====== JazzCash ======
+  jazzcashTransactions: JazzCashTransaction[];
+
+  // ====== Payment Proofs ======
+  paymentProofs: PaymentProof[];
+  approvePaymentProof: (id: string, reviewerName: string) => void;
+  rejectPaymentProof: (id: string, reviewerName: string) => void;
+
+  // ====== Security & Audit Logs ======
+  loginAttempts: LoginAttempt[];
+  secretRotations: SecretRotation[];
+  rotateSecret: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -234,6 +310,39 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // ====== Subscriptions state ======
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>(INITIAL_SUBSCRIPTION_PLANS);
   const [customerSubscriptions, setCustomerSubscriptions] = useState<CustomerSubscription[]>(INITIAL_CUSTOMER_SUBSCRIPTIONS);
+
+  // ====== Website Builder state ======
+  const [websitePages, setWebsitePages] = useState<WebsitePage[]>(INITIAL_WEBSITE_PAGES);
+  const [blockLibrary] = useState<BlockLibraryItem[]>(INITIAL_BLOCK_LIBRARY);
+
+  // ====== Analytics state (read-only aggregates) ======
+  const [analyticsMetrics] = useState<AnalyticsMetric[]>(ANALYTICS_METRICS);
+  const [funnelSteps] = useState<FunnelStep[]>(FUNNEL_STEPS);
+
+  // ====== Support Tickets state ======
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
+
+  // ====== Social Automation state ======
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>(INITIAL_SCHEDULED_POSTS);
+
+  // ====== TikTok Leads state ======
+  const [tiktokLeads, setTiktokLeads] = useState<TikTokLead[]>(INITIAL_TIKTOK_LEADS);
+
+  // ====== Email & SMS Campaigns state ======
+  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>(INITIAL_CAMPAIGNS);
+
+  // ====== Financial Balance state (read-only balances) ======
+  const [gatewayBalances] = useState<GatewayBalance[]>(INITIAL_GATEWAY_BALANCES);
+
+  // ====== JazzCash Transactions state (read-only) ======
+  const [jazzcashTransactions] = useState<JazzCashTransaction[]>(INITIAL_JAZZCASH_TXS);
+
+  // ====== Payment Proofs state ======
+  const [paymentProofs, setPaymentProofs] = useState<PaymentProof[]>(INITIAL_PAYMENT_PROOFS);
+
+  // ====== Security & Audit Logs state ======
+  const [loginAttempts] = useState<LoginAttempt[]>(INITIAL_LOGIN_ATTEMPTS);
+  const [secretRotations, setSecretRotations] = useState<SecretRotation[]>(INITIAL_SECRET_ROTATIONS);
 
   const [cart, setCart] = useState<CartItem[]>([
     {
@@ -791,6 +900,142 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast('info', 'Subscription Cancelled', `${target.customerName}'s ${target.planName} has been cancelled.`);
   };
 
+  // =========================================================
+  // Website Builder CMS
+  // =========================================================
+
+  const createWebsitePage = (page: Omit<WebsitePage, 'id' | 'lastEditedAt'>) => {
+    const newPage: WebsitePage = {
+      ...page,
+      id: `page-${Date.now()}`,
+      lastEditedAt: new Date().toISOString(),
+    };
+    setWebsitePages(prev => [newPage, ...prev]);
+    addToast('success', 'Page Created', `${newPage.title} added as ${newPage.status}.`);
+  };
+
+  const updateWebsitePage = (id: string, updates: Partial<WebsitePage>) => {
+    setWebsitePages(prev => prev.map(p => p.id === id ? { ...p, ...updates, lastEditedAt: new Date().toISOString() } : p));
+    const target = websitePages.find(p => p.id === id);
+    if (target) addToast('success', 'Page Saved', `${target.title} has been updated.`);
+  };
+
+  const publishWebsitePage = (id: string) => {
+    setWebsitePages(prev => prev.map(p => p.id === id ? {
+      ...p,
+      status: 'published',
+      publishedAt: new Date().toISOString(),
+      lastEditedAt: new Date().toISOString(),
+    } : p));
+    const target = websitePages.find(p => p.id === id);
+    if (target) addToast('success', 'Page Published', `${target.title} is now live.`);
+  };
+
+  const deleteWebsitePage = (id: string) => {
+    const target = websitePages.find(p => p.id === id);
+    setWebsitePages(prev => prev.filter(p => p.id !== id));
+    if (target) addToast('info', 'Page Deleted', `${target.title} has been removed.`);
+  };
+
+  // =========================================================
+  // Support Tickets
+  // =========================================================
+
+  const updateTicketStatus = (id: string, status: TicketStatus) => {
+    setSupportTickets(prev => prev.map(t => t.id === id ? { ...t, status, lastReplyAt: new Date().toISOString() } : t));
+    const target = supportTickets.find(t => t.id === id);
+    if (target) addToast('success', 'Ticket Updated', `${target.id} marked as ${status.replace(/_/g, ' ')}.`);
+  };
+
+  const assignTicket = (id: string, assignee: string) => {
+    setSupportTickets(prev => prev.map(t => t.id === id ? { ...t, assignedTo: assignee } : t));
+    addToast('info', 'Ticket Assigned', `Ticket ${id} assigned to ${assignee}.`);
+  };
+
+  // =========================================================
+  // Social Automation
+  // =========================================================
+
+  const schedulePost = (post: Omit<ScheduledPost, 'id'>) => {
+    const newPost: ScheduledPost = { ...post, id: `POST-${Date.now()}` };
+    setScheduledPosts(prev => [newPost, ...prev]);
+    addToast('success', 'Post Scheduled', `Post scheduled for ${new Date(post.scheduledAt).toLocaleString()}.`);
+  };
+
+  const deleteScheduledPost = (id: string) => {
+    setScheduledPosts(prev => prev.filter(p => p.id !== id));
+    addToast('info', 'Post Deleted', 'Scheduled post removed.');
+  };
+
+  // =========================================================
+  // TikTok Leads
+  // =========================================================
+
+  const updateLeadStatus = (id: string, status: LeadStatus) => {
+    setTiktokLeads(prev => prev.map(l => l.id === id ? {
+      ...l,
+      status,
+      followedUpAt: status !== 'new' ? new Date().toISOString() : l.followedUpAt,
+    } : l));
+    addToast('success', 'Lead Updated', `Lead marked as ${status}.`);
+  };
+
+  // =========================================================
+  // Email & SMS Campaigns
+  // =========================================================
+
+  const pauseCampaign = (id: string) => {
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'paused' } : c));
+    const target = campaigns.find(c => c.id === id);
+    if (target) addToast('info', 'Campaign Paused', `${target.name} has been paused.`);
+  };
+
+  const resumeCampaign = (id: string) => {
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'sending' } : c));
+    const target = campaigns.find(c => c.id === id);
+    if (target) addToast('success', 'Campaign Resumed', `${target.name} is now sending.`);
+  };
+
+  // =========================================================
+  // Payment Proofs
+  // =========================================================
+
+  const approvePaymentProof = (id: string, reviewerName: string) => {
+    setPaymentProofs(prev => prev.map(p => p.id === id ? {
+      ...p,
+      status: 'approved' as ProofStatus,
+      reviewedBy: reviewerName,
+      reviewedAt: new Date().toISOString(),
+    } : p));
+    const target = paymentProofs.find(p => p.id === id);
+    if (target) addToast('success', 'Proof Approved', `Proof from ${target.customerName} approved.`);
+  };
+
+  const rejectPaymentProof = (id: string, reviewerName: string) => {
+    setPaymentProofs(prev => prev.map(p => p.id === id ? {
+      ...p,
+      status: 'rejected' as ProofStatus,
+      reviewedBy: reviewerName,
+      reviewedAt: new Date().toISOString(),
+    } : p));
+    const target = paymentProofs.find(p => p.id === id);
+    if (target) addToast('info', 'Proof Rejected', `Proof from ${target.customerName} rejected.`);
+  };
+
+  // =========================================================
+  // Security & Audit Logs
+  // =========================================================
+
+  const rotateSecret = (id: string) => {
+    setSecretRotations(prev => prev.map(s => s.id === id ? {
+      ...s,
+      lastRotatedAt: new Date().toISOString(),
+      isOverdue: false,
+    } : s));
+    const target = secretRotations.find(s => s.id === id);
+    if (target) addToast('success', 'Secret Rotated', `${target.secretName} rotation completed. Update your environment variables.`);
+  };
+
   const updateContent = (newContent: Partial<ContentSection>) => {
     setContent(prev => ({ ...prev, ...newContent }));
     fetch('/api/content', {
@@ -1051,7 +1296,54 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSubscriptionPlan,
         archiveSubscriptionPlan,
         retryFailedSubscription,
-        cancelSubscription
+        cancelSubscription,
+
+        // Website Builder
+        websitePages,
+        blockLibrary,
+        createWebsitePage,
+        updateWebsitePage,
+        publishWebsitePage,
+        deleteWebsitePage,
+
+        // Analytics
+        analyticsMetrics,
+        funnelSteps,
+
+        // Support Tickets
+        supportTickets,
+        updateTicketStatus,
+        assignTicket,
+
+        // Social Automation
+        scheduledPosts,
+        schedulePost,
+        deleteScheduledPost,
+
+        // TikTok Leads
+        tiktokLeads,
+        updateLeadStatus,
+
+        // Email & SMS Campaigns
+        campaigns,
+        pauseCampaign,
+        resumeCampaign,
+
+        // Financial Balance
+        gatewayBalances,
+
+        // JazzCash
+        jazzcashTransactions,
+
+        // Payment Proofs
+        paymentProofs,
+        approvePaymentProof,
+        rejectPaymentProof,
+
+        // Security & Audit Logs
+        loginAttempts,
+        secretRotations,
+        rotateSecret
       }}
     >
       {children}

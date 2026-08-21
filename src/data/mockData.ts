@@ -1,4 +1,4 @@
-import { Category, Product, User, Order, G2GSupplierConnector, ContentSection, Coupon, AdminLog, NavItem, IptvServer, IptvCredential, WooCommerceConnection, SyncConflict, SubscriptionPlan, CustomerSubscription } from '../types';
+import { Category, Product, User, Order, G2GSupplierConnector, ContentSection, Coupon, AdminLog, NavItem, IptvServer, IptvCredential, WooCommerceConnection, SyncConflict, SubscriptionPlan, CustomerSubscription, WebsitePage, BlockLibraryItem, AnalyticsMetric, FunnelStep, SupportTicket, ScheduledPost, TikTokLead, MarketingCampaign, GatewayBalance, JazzCashTransaction, PaymentProof, LoginAttempt, SecretRotation } from '../types';
 
 export const INITIAL_NAV_ITEMS: NavItem[] = [
   {
@@ -1981,5 +1981,663 @@ export const INITIAL_CUSTOMER_SUBSCRIPTIONS: CustomerSubscription[] = [
     renewsAt: '2026-07-12T14:00:00Z',
     amount: 16.99,
     failedAttempts: 0,
+  },
+];
+
+// ============================================
+// WEBSITE BUILDER — MOCK DATA
+// ============================================
+
+export const INITIAL_WEBSITE_PAGES: WebsitePage[] = [
+  {
+    id: 'page-home',
+    title: 'Home',
+    slug: '/',
+    status: 'published',
+    sections: ['hero-main', 'category-grid', 'trending-products', 'faq'],
+    lastEditedAt: '2026-08-20T14:00:00Z',
+    publishedAt: '2026-08-20T14:30:00Z',
+    seoTitle: 'PlayBeat Digital — Premium Digital Marketplace & Smart Projectors',
+    seoDescription: 'Instant digital keys, gaming accounts, subscriptions, SaaS licenses, and 4K Smart Projectors.',
+    canonicalUrl: 'https://playbeat.digital/',
+  },
+  {
+    id: 'page-projectors',
+    title: '4K Smart Projectors',
+    slug: '/4k-projectors',
+    status: 'published',
+    sections: ['hero-projector', 'projector-grid', 'comparison', 'shipping-info'],
+    lastEditedAt: '2026-08-19T11:00:00Z',
+    publishedAt: '2026-08-19T11:30:00Z',
+    seoTitle: '4K Smart Projectors — DHL Tracked Worldwide | PlayBeat',
+    seoDescription: 'Magcubic, Wanbo, and XGIMI 4K projectors with free insured DHL shipping.',
+    canonicalUrl: 'https://playbeat.digital/4k-projectors',
+  },
+  {
+    id: 'page-iptv',
+    title: 'IPTV Premium Plans',
+    slug: '/iptv',
+    status: 'draft',
+    sections: ['hero-iptv', 'plan-grid', 'channel-list', 'faq-iptv'],
+    lastEditedAt: '2026-08-21T08:00:00Z',
+    seoTitle: 'IPTV Premium — 16,000+ Live Channels | PlayBeat',
+    seoDescription: 'Premium IPTV subscriptions with 4K UHD channels and zero-buffering servers.',
+    canonicalUrl: 'https://playbeat.digital/iptv',
+  },
+  {
+    id: 'page-flash-sale',
+    title: 'Flash Sale Landing',
+    slug: '/flash-sale',
+    status: 'scheduled',
+    sections: ['hero-flash', 'countdown', 'deal-grid', 'cta'],
+    lastEditedAt: '2026-08-21T06:00:00Z',
+    scheduledAt: '2026-08-25T00:00:00Z',
+    seoTitle: 'Flash Sale — Up to 50% Off Digital Keys | PlayBeat',
+    seoDescription: 'Limited-time flash sale on gaming keys, subscriptions, and SaaS licenses.',
+    canonicalUrl: 'https://playbeat.digital/flash-sale',
+  },
+];
+
+export const INITIAL_BLOCK_LIBRARY: BlockLibraryItem[] = [
+  { id: 'block-hero', name: 'Hero Banner', category: 'hero', preview: 'Large headline + CTA + background image', usageCount: 12 },
+  { id: 'block-grid', name: 'Product Grid', category: 'grid', preview: 'Responsive 4-col product card grid', usageCount: 8 },
+  { id: 'block-cta', name: 'CTA Strip', category: 'cta', preview: 'Single-line call-to-action with button', usageCount: 15 },
+  { id: 'block-faq', name: 'FAQ Accordion', category: 'faq', preview: 'Collapsible Q&A list', usageCount: 6 },
+  { id: 'block-testimonial', name: 'Testimonial Card', category: 'testimonial', preview: 'Customer quote + rating + avatar', usageCount: 4 },
+  { id: 'block-footer', name: 'Footer Links', category: 'footer', preview: 'Multi-column footer with social links', usageCount: 1 },
+  { id: 'block-form', name: 'Lead Capture Form', category: 'form', preview: 'Email + name input with submit button', usageCount: 3 },
+];
+
+// ============================================
+// ANALYTICS — MOCK DATA
+// ============================================
+
+export const ANALYTICS_METRICS: AnalyticsMetric[] = [
+  { label: 'Sessions', value: 18432, change: 12.4, trend: 'up' },
+  { label: 'Unique Visitors', value: 14201, change: 8.7, trend: 'up' },
+  { label: 'Page Views', value: 42891, change: 15.2, trend: 'up' },
+  { label: 'Avg Session Duration', value: 184, change: -3.1, trend: 'down' }, // seconds
+  { label: 'Bounce Rate', value: 32.4, change: -2.8, trend: 'down' }, // percentage
+  { label: 'Conversion Rate', value: 3.8, change: 0.4, trend: 'up' }, // percentage
+];
+
+export const FUNNEL_STEPS: FunnelStep[] = [
+  { step: 'Landing Page', visitors: 18432, conversionRate: 100 },
+  { step: 'Product View', visitors: 9847, conversionRate: 53.4 },
+  { step: 'Add to Cart', visitors: 3214, conversionRate: 17.4 },
+  { step: 'Checkout Started', visitors: 1482, conversionRate: 8.0 },
+  { step: 'Payment Completed', visitors: 712, conversionRate: 3.9 },
+];
+
+// ============================================
+// SUPPORT TICKETS — MOCK DATA
+// ============================================
+
+export const INITIAL_SUPPORT_TICKETS: SupportTicket[] = [
+  {
+    id: 'TKT-001',
+    subject: 'IPTV credential not working on Smart TV',
+    customerName: 'Damian Thorne',
+    customerEmail: 'damian@playbeat-client.com',
+    priority: 'high',
+    status: 'in_progress',
+    channel: 'email',
+    assignedTo: 'Sarah K.',
+    slaMinutesRemaining: 184,
+    createdAt: '2026-08-21T05:30:00Z',
+    lastReplyAt: '2026-08-21T07:15:00Z',
+    messageCount: 4,
+  },
+  {
+    id: 'TKT-002',
+    subject: 'Projector damaged during shipping — DHL claim',
+    customerName: 'Alex Vance',
+    customerEmail: 'alex.vance@example.com',
+    priority: 'urgent',
+    status: 'open',
+    channel: 'whatsapp',
+    assignedTo: 'Unassigned',
+    slaMinutesRemaining: -42, // breached
+    createdAt: '2026-08-20T22:00:00Z',
+    lastReplyAt: '2026-08-20T22:30:00Z',
+    messageCount: 2,
+  },
+  {
+    id: 'TKT-003',
+    subject: 'Request refund for duplicate Netflix subscription',
+    customerName: 'Maria Silva',
+    customerEmail: 'maria.silva@outlook.com',
+    priority: 'normal',
+    status: 'waiting_on_customer',
+    channel: 'in_app',
+    assignedTo: 'John D.',
+    slaMinutesRemaining: 1240,
+    createdAt: '2026-08-19T14:00:00Z',
+    lastReplyAt: '2026-08-20T09:00:00Z',
+    messageCount: 6,
+  },
+  {
+    id: 'TKT-004',
+    subject: 'How do I activate my Spotify Family plan?',
+    customerName: 'Priya Patel',
+    customerEmail: 'priya.patel@gmail.com',
+    priority: 'low',
+    status: 'resolved',
+    channel: 'email',
+    assignedTo: 'Sarah K.',
+    slaMinutesRemaining: 0,
+    createdAt: '2026-08-18T10:00:00Z',
+    lastReplyAt: '2026-08-18T11:30:00Z',
+    messageCount: 3,
+  },
+  {
+    id: 'TKT-005',
+    subject: 'Bulk order inquiry — 20x Steam $100 keys',
+    customerName: 'Michael Chen',
+    customerEmail: 'michael.chen@protonmail.com',
+    priority: 'normal',
+    status: 'open',
+    channel: 'social',
+    assignedTo: 'Unassigned',
+    slaMinutesRemaining: 320,
+    createdAt: '2026-08-21T03:00:00Z',
+    lastReplyAt: '2026-08-21T03:00:00Z',
+    messageCount: 1,
+  },
+];
+
+// ============================================
+// SOCIAL AUTOMATION — MOCK DATA
+// ============================================
+
+export const INITIAL_SCHEDULED_POSTS: ScheduledPost[] = [
+  {
+    id: 'POST-001',
+    content: '🔥 Flash Sale LIVE! Get 50% off all 4K Smart Projectors this weekend only. Limited stock — link in bio.',
+    platforms: ['tiktok', 'instagram', 'x'],
+    status: 'scheduled',
+    scheduledAt: '2026-08-22T10:00:00Z',
+    hashtags: ['#FlashSale', '#4KProjector', '#PlayBeat'],
+    createdBy: 'Marketing Team',
+  },
+  {
+    id: 'POST-002',
+    content: 'New arrival: Magcubic HY300Pro Plus with motorized focus. Now in stock at ZeroByte store.',
+    platforms: ['instagram', 'facebook'],
+    status: 'published',
+    scheduledAt: '2026-08-20T14:00:00Z',
+    publishedAt: '2026-08-20T14:00:00Z',
+    engagement: { likes: 842, comments: 64, shares: 28 },
+    hashtags: ['#Magcubic', '#Projector', '#NewArrival'],
+    createdBy: 'Marketing Team',
+  },
+  {
+    id: 'POST-003',
+    content: 'Did you know? All our digital keys are delivered in under 5 seconds with 256-bit encryption.',
+    platforms: ['tiktok', 'x'],
+    status: 'draft',
+    scheduledAt: '2026-08-23T18:00:00Z',
+    hashtags: ['#DigitalKeys', '#InstantDelivery'],
+    createdBy: 'Content Lead',
+  },
+  {
+    id: 'POST-004',
+    content: 'TikTok ad campaign wrap-up: 1,492 leads captured this week. Thank you to everyone who joined!',
+    platforms: ['x', 'linkedin'],
+    status: 'failed',
+    scheduledAt: '2026-08-19T12:00:00Z',
+    hashtags: ['#TikTokAds', '#LeadGen'],
+    createdBy: 'Marketing Team',
+  },
+];
+
+// ============================================
+// TIKTOK LEADS — MOCK DATA
+// ============================================
+
+export const INITIAL_TIKTOK_LEADS: TikTokLead[] = [
+  {
+    id: 'LEAD-001',
+    name: 'Jessica Park',
+    email: 'jessica.park@gmail.com',
+    phone: '+1 (555) 287-4421',
+    campaign: 'PlayBeat 4K Projector Aug',
+    adGroup: 'Projector Enthusiasts',
+    creative: 'HY300 PRO Demo Video',
+    audience: 'Lookalike 1%',
+    status: 'new',
+    costPerLead: 4.20,
+    capturedAt: '2026-08-21T06:30:00Z',
+  },
+  {
+    id: 'LEAD-002',
+    name: 'Carlos Mendez',
+    email: 'carlos.m@yahoo.com',
+    phone: '+1 (555) 881-3094',
+    campaign: 'PlayBeat 4K Projector Aug',
+    adGroup: 'Smart Home Buyers',
+    creative: 'Family Movie Night',
+    audience: 'Interest: Home Theater',
+    status: 'contacted',
+    costPerLead: 3.85,
+    capturedAt: '2026-08-21T05:15:00Z',
+    followedUpAt: '2026-08-21T07:00:00Z',
+  },
+  {
+    id: 'LEAD-003',
+    name: 'Aisha Rahman',
+    email: 'aisha.rahman@outlook.com',
+    campaign: 'IPTV Premium Lead Magnet',
+    adGroup: 'Cord Cutters',
+    creative: '16,000 Channels Reel',
+    audience: 'Interest: Streaming',
+    status: 'qualified',
+    costPerLead: 2.95,
+    capturedAt: '2026-08-20T22:00:00Z',
+    followedUpAt: '2026-08-21T08:00:00Z',
+  },
+  {
+    id: 'LEAD-004',
+    name: 'Tom Bradley',
+    email: 'tom.b@gmail.com',
+    campaign: 'Steam Game Keys Promo',
+    adGroup: 'Gamers 18-34',
+    creative: 'Best-Selling Steam Keys',
+    audience: 'Interest: PC Gaming',
+    status: 'converted',
+    costPerLead: 5.10,
+    capturedAt: '2026-08-20T15:00:00Z',
+    followedUpAt: '2026-08-20T16:30:00Z',
+    convertedToCustomerId: 'cust-tom-bradley',
+  },
+  {
+    id: 'LEAD-005',
+    name: 'Lena Volkov',
+    email: 'lena.v@protonmail.com',
+    campaign: 'IPTV Premium Lead Magnet',
+    adGroup: 'Sports Fans',
+    creative: 'Live Sports Reel',
+    audience: 'Interest: Live Sports',
+    status: 'lost',
+    costPerLead: 3.40,
+    capturedAt: '2026-08-19T18:00:00Z',
+    followedUpAt: '2026-08-20T10:00:00Z',
+  },
+];
+
+// ============================================
+// EMAIL & SMS CAMPAIGNS — MOCK DATA
+// ============================================
+
+export const INITIAL_CAMPAIGNS: MarketingCampaign[] = [
+  {
+    id: 'CAMP-001',
+    name: 'August Flash Sale Blast',
+    channel: 'email',
+    status: 'sent',
+    trigger: 'manual',
+    audienceSize: 8420,
+    sentCount: 8196,
+    openRate: 42.8,
+    clickRate: 12.4,
+    bounceRate: 2.7,
+    sentAt: '2026-08-15T10:00:00Z',
+    subject: '⚡ 48-Hour Flash Sale: 50% Off All Digital Keys',
+    preview: 'Grab your gaming keys, IPTV, and SaaS subscriptions at half price...',
+  },
+  {
+    id: 'CAMP-002',
+    name: 'Abandoned Cart Recovery',
+    channel: 'both',
+    status: 'sent',
+    trigger: 'abandoned_cart',
+    audienceSize: 312,
+    sentCount: 298,
+    openRate: 58.2,
+    clickRate: 24.6,
+    bounceRate: 4.5,
+    sentAt: '2026-08-20T18:00:00Z',
+    subject: 'You left something behind — complete your order now',
+    preview: 'Your cart is waiting. Complete checkout in the next 24 hours...',
+  },
+  {
+    id: 'CAMP-003',
+    name: 'Post-Purchase Thank You + Upsell',
+    channel: 'email',
+    status: 'sending',
+    trigger: 'post_purchase',
+    audienceSize: 148,
+    sentCount: 47,
+    openRate: 71.4,
+    clickRate: 18.2,
+    bounceRate: 0,
+    sentAt: '2026-08-21T07:00:00Z',
+    subject: 'Thanks for your order! Here are 3 products you might also like',
+    preview: 'Based on your recent purchase, we picked these out for you...',
+  },
+  {
+    id: 'CAMP-004',
+    name: 'Win-Back — Lapsed 90 Days',
+    channel: 'sms',
+    status: 'scheduled',
+    trigger: 'win_back',
+    audienceSize: 1240,
+    sentCount: 0,
+    openRate: 0,
+    clickRate: 0,
+    bounceRate: 0,
+    scheduledAt: '2026-08-25T14:00:00Z',
+    subject: 'We miss you! Here\'s 15% off your next order',
+    preview: 'PLAYBEAT15 — Show this code at checkout for 15% off...',
+  },
+  {
+    id: 'CAMP-005',
+    name: 'New Customer Welcome Sequence',
+    channel: 'email',
+    status: 'paused',
+    trigger: 'welcome',
+    audienceSize: 412,
+    sentCount: 380,
+    openRate: 64.1,
+    clickRate: 21.8,
+    bounceRate: 1.2,
+    sentAt: '2026-08-18T09:00:00Z',
+    subject: 'Welcome to PlayBeat! Here\'s what you can do next',
+    preview: 'Hi {first_name}, thanks for joining PlayBeat Digital...',
+  },
+];
+
+// ============================================
+// FINANCIAL BALANCE — MOCK DATA
+// ============================================
+
+export const INITIAL_GATEWAY_BALANCES: GatewayBalance[] = [
+  {
+    id: 'gw-stripe',
+    gateway: 'Stripe',
+    available: 28492.18,
+    pending: 4218.50,
+    currency: 'USD',
+    nextSettlementAt: '2026-08-23T00:00:00Z',
+    settlementFrequency: 'Daily',
+    icon: 'CreditCard',
+  },
+  {
+    id: 'gw-paypal',
+    gateway: 'PayPal',
+    available: 12847.92,
+    pending: 1240.00,
+    currency: 'USD',
+    nextSettlementAt: '2026-08-22T00:00:00Z',
+    settlementFrequency: 'Weekly',
+    icon: 'Wallet',
+  },
+  {
+    id: 'gw-jazzcash',
+    gateway: 'JazzCash',
+    available: 842940, // PKR
+    pending: 128400,
+    currency: 'PKR',
+    nextSettlementAt: '2026-08-24T00:00:00Z',
+    settlementFrequency: 'T+2',
+    icon: 'Smartphone',
+  },
+  {
+    id: 'gw-easypaisa',
+    gateway: 'Easypaisa',
+    available: 412800, // PKR
+    pending: 64200,
+    currency: 'PKR',
+    nextSettlementAt: '2026-08-23T00:00:00Z',
+    settlementFrequency: 'T+1',
+    icon: 'Smartphone',
+  },
+  {
+    id: 'gw-crypto',
+    gateway: 'Crypto (USDT)',
+    available: 1842.50,
+    pending: 0,
+    currency: 'USDT',
+    nextSettlementAt: '2026-08-21T00:00:00Z',
+    settlementFrequency: 'Instant',
+    icon: 'Bitcoin',
+  },
+  {
+    id: 'gw-lemonsqueezy',
+    gateway: 'Lemon Squeezy',
+    available: 8420.30,
+    pending: 1240.00,
+    currency: 'USD',
+    nextSettlementAt: '2026-08-26T00:00:00Z',
+    settlementFrequency: 'Weekly',
+    icon: 'Citrus',
+  },
+];
+
+// ============================================
+// JAZZCASH TRANSACTIONS — MOCK DATA
+// ============================================
+
+export const INITIAL_JAZZCASH_TXS: JazzCashTransaction[] = [
+  {
+    id: 'JC-TX-001',
+    reference: 'JC9948201948',
+    customerName: 'Damian Thorne',
+    customerEmail: 'damian@playbeat-client.com',
+    amount: 8500,
+    status: 'success',
+    method: 'wallet',
+    merchantId: 'MC-PlayBeat-001',
+    timestamp: '2026-08-21T06:42:00Z',
+  },
+  {
+    id: 'JC-TX-002',
+    reference: 'JC9948201949',
+    customerName: 'Sarah Khan',
+    customerEmail: 'sarah.khan@gmail.com',
+    amount: 1299,
+    status: 'success',
+    method: 'card',
+    merchantId: 'MC-PlayBeat-001',
+    timestamp: '2026-08-21T05:18:00Z',
+  },
+  {
+    id: 'JC-TX-003',
+    reference: 'JC9948201950',
+    customerName: 'John Carter',
+    customerEmail: 'john.carter@yahoo.com',
+    amount: 2299,
+    status: 'failed',
+    method: 'wallet',
+    merchantId: 'MC-PlayBeat-001',
+    timestamp: '2026-08-21T03:24:00Z',
+  },
+  {
+    id: 'JC-TX-004',
+    reference: 'JC9948201951',
+    customerName: 'Priya Patel',
+    customerEmail: 'priya.patel@gmail.com',
+    amount: 1299,
+    status: 'refunded',
+    method: 'iban',
+    merchantId: 'MC-PlayBeat-001',
+    timestamp: '2026-08-20T19:12:00Z',
+  },
+  {
+    id: 'JC-TX-005',
+    reference: 'JC9948201952',
+    customerName: 'Maria Silva',
+    customerEmail: 'maria.silva@outlook.com',
+    amount: 1699,
+    status: 'pending',
+    method: 'qr',
+    merchantId: 'MC-PlayBeat-001',
+    timestamp: '2026-08-21T07:38:00Z',
+  },
+];
+
+// ============================================
+// PAYMENT PROOFS — MOCK DATA
+// ============================================
+
+export const INITIAL_PAYMENT_PROOFS: PaymentProof[] = [
+  {
+    id: 'PRF-001',
+    orderId: 'PB-845344',
+    customerName: 'Damian Thorne',
+    customerEmail: 'damian@playbeat-client.com',
+    amount: 8500,
+    method: 'JazzCash Wallet Transfer',
+    fileName: 'jazzcash-transfer-confirmation.png',
+    fileSizeKb: 248,
+    ocrExtractedAmount: 8500,
+    ocrExtractedReference: 'JC9948201948',
+    status: 'approved',
+    uploadedAt: '2026-08-21T06:45:00Z',
+    reviewedBy: 'Sarah K.',
+    reviewedAt: '2026-08-21T07:00:00Z',
+  },
+  {
+    id: 'PRF-002',
+    customerName: 'Ahmed Raza',
+    customerEmail: 'ahmed.raza@gmail.com',
+    amount: 22800,
+    method: 'Bank Transfer (IBAN)',
+    fileName: 'bank-slip-22800.pdf',
+    fileSizeKb: 184,
+    ocrExtractedAmount: 22800,
+    ocrExtractedReference: 'TRX-8829410',
+    status: 'pending_review',
+    uploadedAt: '2026-08-21T07:30:00Z',
+  },
+  {
+    id: 'PRF-003',
+    customerName: 'Sana Tariq',
+    customerEmail: 'sana.tariq@hotmail.com',
+    amount: 4500,
+    method: 'Easypaisa QR',
+    fileName: 'easypaisa-qr-screenshot.jpg',
+    fileSizeKb: 312,
+    ocrExtractedAmount: 4500,
+    status: 'pending_review',
+    uploadedAt: '2026-08-21T08:15:00Z',
+  },
+  {
+    id: 'PRF-004',
+    customerName: 'Bilal Hussain',
+    customerEmail: 'bilal.h@gmail.com',
+    amount: 12999,
+    method: 'Bank Transfer (IBAN)',
+    fileName: 'hbl-transfer-slip.png',
+    fileSizeKb: 421,
+    status: 'linked',
+    orderId: 'PB-842911',
+    uploadedAt: '2026-08-20T22:00:00Z',
+    reviewedBy: 'John D.',
+    reviewedAt: '2026-08-20T22:30:00Z',
+  },
+  {
+    id: 'PRF-005',
+    customerName: 'Fatima Khan',
+    customerEmail: 'fatima.k@outlook.com',
+    amount: 3200,
+    method: 'JazzCash Wallet Transfer',
+    fileName: 'jazzcash-receipt.jpg',
+    fileSizeKb: 198,
+    status: 'rejected',
+    uploadedAt: '2026-08-20T18:00:00Z',
+    reviewedBy: 'Sarah K.',
+    reviewedAt: '2026-08-20T18:45:00Z',
+  },
+];
+
+// ============================================
+// SECURITY & AUDIT LOGS — MOCK DATA
+// (Uses existing INITIAL_ADMIN_LOGS for audit log entries)
+// ============================================
+
+export const INITIAL_LOGIN_ATTEMPTS: LoginAttempt[] = [
+  {
+    id: 'LA-001',
+    email: 'admin@playbeat.digital',
+    ipAddress: '182.178.42.18',
+    geo: 'Karachi, PK',
+    success: true,
+    timestamp: '2026-08-21T07:30:00Z',
+    userAgent: 'Chrome 127 / macOS',
+  },
+  {
+    id: 'LA-002',
+    email: 'admin@playbeat.digital',
+    ipAddress: '45.142.122.91',
+    geo: 'Unknown (VPN)',
+    success: false,
+    timestamp: '2026-08-21T04:12:00Z',
+    userAgent: 'curl/8.4.0',
+  },
+  {
+    id: 'LA-003',
+    email: 'admin@playbeat.digital',
+    ipAddress: '45.142.122.91',
+    geo: 'Unknown (VPN)',
+    success: false,
+    timestamp: '2026-08-21T04:12:18Z',
+    userAgent: 'curl/8.4.0',
+  },
+  {
+    id: 'LA-004',
+    email: 'admin@playbeat.digital',
+    ipAddress: '45.142.122.91',
+    geo: 'Unknown (VPN)',
+    success: false,
+    timestamp: '2026-08-21T04:12:24Z',
+    userAgent: 'curl/8.4.0',
+  },
+  {
+    id: 'LA-005',
+    email: 'sarah@playbeat.digital',
+    ipAddress: '203.135.42.10',
+    geo: 'Lahore, PK',
+    success: true,
+    timestamp: '2026-08-21T06:45:00Z',
+    userAgent: 'Firefox 129 / Windows',
+  },
+];
+
+export const INITIAL_SECRET_ROTATIONS: SecretRotation[] = [
+  {
+    id: 'SEC-001',
+    secretName: 'Stripe Secret Key',
+    lastRotatedAt: '2026-07-15T10:00:00Z',
+    rotationIntervalDays: 90,
+    isOverdue: false,
+  },
+  {
+    id: 'SEC-002',
+    secretName: 'JazzCash API Key',
+    lastRotatedAt: '2026-05-10T14:00:00Z',
+    rotationIntervalDays: 90,
+    isOverdue: true,
+  },
+  {
+    id: 'SEC-003',
+    secretName: 'G2G Connector Token',
+    lastRotatedAt: '2026-08-01T09:00:00Z',
+    rotationIntervalDays: 30,
+    isOverdue: false,
+  },
+  {
+    id: 'SEC-004',
+    secretName: 'WooCommerce Consumer Secret',
+    lastRotatedAt: '2026-04-20T11:00:00Z',
+    rotationIntervalDays: 60,
+    isOverdue: true,
+  },
+  {
+    id: 'SEC-005',
+    secretName: 'TikTok Lead Webhook Secret',
+    lastRotatedAt: '2026-07-30T16:00:00Z',
+    rotationIntervalDays: 30,
+    isOverdue: false,
   },
 ];

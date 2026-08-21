@@ -17,6 +17,18 @@ import { ComingSoonView } from './ComingSoonView';
 import { IptvM3uManager } from './IptvM3uManager';
 import { WooCommerceBridge } from './WooCommerceBridge';
 import { SubscriptionsManager } from './SubscriptionsManager';
+import { WebsiteBuilderCMS } from './WebsiteBuilderCMS';
+import { AnalyticsTraffic } from './AnalyticsTraffic';
+import { DiscountsCoupons } from './DiscountsCoupons';
+import { CustomerAccounts } from './CustomerAccounts';
+import { SupportTickets } from './SupportTickets';
+import { SocialAutomation } from './SocialAutomation';
+import { TikTokLeadsEngine } from './TikTokLeadsEngine';
+import { EmailSmsCampaigns } from './EmailSmsCampaigns';
+import { FinancialBalance } from './FinancialBalance';
+import { JazzCashMerchant } from './JazzCashMerchant';
+import { PaymentProofs } from './PaymentProofs';
+import { SecurityAuditLogs } from './SecurityAuditLogs';
 import {
   LayoutDashboard,
   Globe,
@@ -137,140 +149,9 @@ const findActiveLabel = (id: string): string => {
 
 // Map of menu IDs that have functional implementations to their components
 // Everything else falls back to ComingSoonView with a description.
-const COMING_SOON_META: Record<string, { description: string; features: string[] }> = {
-  'website-builder': {
-    description:
-      'A drag-and-drop builder for assembling storefront pages, landing pages, and promotional banners without touching code.',
-    features: [
-      'Block-based visual editor for hero, grid, FAQ and footer sections',
-      'Live preview across desktop / tablet / mobile breakpoints',
-      'Reusable content snippets synced across pages',
-      'Per-page SEO meta, canonical URL and Open Graph fields',
-      'Scheduled publish with rollback to previous version',
-    ],
-  },
-  analytics: {
-    description:
-      'Consolidated analytics surface pulling sessions, conversion rate, traffic sources, and product-level performance into one view.',
-    features: [
-      'Real-time visitor map with source attribution',
-      'Funnel breakdown from landing → cart → checkout → paid',
-      'Product-level revenue and units-sold leaderboard',
-      'Cohort retention by week and month',
-      'Exportable CSV / JSON snapshots for BI tools',
-    ],
-  },
-  discounts: {
-    description:
-      'Build and track promo codes, auto-apply coupons, BOGO offers, and tiered discounts with usage limits and expiry windows.',
-    features: [
-      'Code generator with prefix, suffix, and length controls',
-      'Percentage / fixed / free-shipping discount types',
-      'Customer-segment targeting (new, returning, VIP)',
-      'Usage caps per code and per customer',
-      'Real-time redemption analytics with revenue impact',
-    ],
-  },
-  customers: {
-    description:
-      'Searchable directory of every customer account with order history, lifetime value, wishlist, and support tickets in one view.',
-    features: [
-      'Filterable customer table with LTV and last-active columns',
-      'Per-customer timeline of orders, refunds, and tickets',
-      'Account status controls (active, suspended, pending verification)',
-      'Wishlist and recently-viewed product inspector',
-      'Manual credit / debit ledger adjustments',
-    ],
-  },
-  'support-tickets': {
-    description:
-      'Inbox-style ticket queue with priority, SLA timers, assignment, and canned responses for common customer requests.',
-    features: [
-      'Unified inbox across email, WhatsApp, and in-app chat',
-      'SLA countdown timers with breach alerts',
-      'Canned response library with merge variables',
-      'Internal notes and @mentions between agents',
-      'Customer-side satisfaction rating after resolution',
-    ],
-  },
-  'social-automation': {
-    description:
-      'Schedule and automate posts across TikTok, Instagram, X, and Facebook from one calendar with reusable templates.',
-    features: [
-      'Cross-platform scheduler with timezone-aware delivery',
-      'Template library with brand kits (logo, fonts, palettes)',
-      'Auto-hashtag suggestions based on trending topics',
-      'Engagement analytics rolled up per post',
-      'Approval workflow for marketing manager sign-off',
-    ],
-  },
-  'tiktok-leads': {
-    description:
-      'Capture leads from TikTok ads, attribute them to campaigns, and pipe them into the customer CRM automatically.',
-    features: [
-      'Lead-form webhook receiver with field mapping',
-      'Campaign attribution with cost-per-lead tracking',
-      'Auto-tagging by ad group, creative, and audience',
-      'Instant WhatsApp / SMS follow-up to new leads',
-      'Conversion funnel report exported to TikTok Ads Manager',
-    ],
-  },
-  'email-sms': {
-    description:
-      'Build transactional and marketing messages, segment audiences, and trigger sends based on customer behavior.',
-    features: [
-      'Visual email builder with MJML export',
-      'SMS composer with character counter and Unicode support',
-      'Audience segments based on orders, wishlist, and tags',
-      'Trigger library (abandoned cart, post-purchase, win-back)',
-      'Deliverability dashboard with bounce and complaint rates',
-    ],
-  },
-  'financial-balance': {
-    description:
-      'Real-time balance sheet across all payment gateways, settlement timelines, and reconciliation status against orders.',
-    features: [
-      'Unified balance across Stripe, PayPal, JazzCash, Easypaisa, crypto',
-      'Settlement timeline with pending vs available breakdown',
-      'Auto-reconciliation against order ledger',
-      'Payout schedule with next-settlement countdown',
-      'Refund and chargeback ledger with reason codes',
-    ],
-  },
-  jazzcash: {
-    description:
-      'Dedicated console for JazzCash merchant configuration, settlement reports, and transaction-level audit.',
-    features: [
-      'Merchant ID / API key vault (never exposed to client)',
-      'Settlement report importer with CSV upload',
-      'Transaction search by reference, amount, or customer',
-      'Refund initiator with reason capture',
-      'Webhook signature verifier for inbound events',
-    ],
-  },
-  'payment-proofs': {
-    description:
-      'Centralized archive of payment proof documents — screenshots, bank transfer slips, and JazzCash/Easypaisa confirmations.',
-    features: [
-      'Drag-and-drop upload with auto-link to order',
-      'OCR-based amount and reference extraction',
-      'Manual verification workflow with approve / reject',
-      'Audit trail per proof with reviewer and timestamp',
-      'Encrypted at-rest storage with role-based access',
-    ],
-  },
-  security: {
-    description:
-      'Audit log explorer, role-based access control matrix, and security posture monitor for the entire admin surface.',
-    features: [
-      'Immutable audit log of every admin action',
-      'Role-based access matrix per resource and action',
-      'Failed-login monitor with IP and geo attribution',
-      'Secrets vault status (rotation overdue, last rotated)',
-      'Exportable compliance report for SOC 2 / PCI DSS',
-    ],
-  },
-};
+// NOTE: As of Task 4, ALL admin pages have functional implementations.
+// This map is kept empty as a fallback for any future menu items added without a component.
+const COMING_SOON_META: Record<string, { description: string; features: string[] }> = {};
 
 export const AdminLayout: React.FC = () => {
   const { setActiveView, currentUser, setIsAuthModalOpen, adminTab, setAdminTab, setIsWhatsAppModalOpen } = useStore();
@@ -328,6 +209,54 @@ export const AdminLayout: React.FC = () => {
       // Subscriptions — NEW
       case 'subscriptions':
         return <SubscriptionsManager />;
+
+      // Website Builder CMS — NEW
+      case 'website-builder':
+        return <WebsiteBuilderCMS />;
+
+      // Analytics & Traffic — NEW
+      case 'analytics':
+        return <AnalyticsTraffic />;
+
+      // Discounts & Coupons — NEW
+      case 'discounts':
+        return <DiscountsCoupons />;
+
+      // Customer Accounts — NEW
+      case 'customers':
+        return <CustomerAccounts />;
+
+      // Support Tickets — NEW
+      case 'support-tickets':
+        return <SupportTickets />;
+
+      // Social Automation — NEW
+      case 'social-automation':
+        return <SocialAutomation />;
+
+      // TikTok Leads Engine — NEW
+      case 'tiktok-leads':
+        return <TikTokLeadsEngine />;
+
+      // Email & SMS Campaigns — NEW
+      case 'email-sms':
+        return <EmailSmsCampaigns />;
+
+      // Financial Balance — NEW
+      case 'financial-balance':
+        return <FinancialBalance />;
+
+      // JazzCash & Merchant — NEW
+      case 'jazzcash':
+        return <JazzCashMerchant />;
+
+      // Payment Proofs — NEW
+      case 'payment-proofs':
+        return <PaymentProofs />;
+
+      // Security & Audit Logs — NEW
+      case 'security':
+        return <SecurityAuditLogs />;
 
       // Growth & Security (existing)
       case 'roles':
