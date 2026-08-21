@@ -175,8 +175,8 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Icon+text tab buttons — DashFlat style (Activities/Statistics/Summary with icons) */}
-          <div className="flex items-center p-1 rounded-xl bg-[#0f141c] border border-[#1f2937]">
+          {/* Icon+text tab buttons — glossy pill style */}
+          <div className="flex items-center p-1 rounded-full bg-[#0f141c] border border-[#1f2937]">
             {([
               { id: 'activities', label: 'Activities', icon: Play },
               { id: 'statistics', label: 'Statistics', icon: BarChart3 },
@@ -187,9 +187,9 @@ export const AdminDashboard: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setDashboardTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
                     dashboardTab === tab.id
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
                       : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
@@ -200,28 +200,28 @@ export const AdminDashboard: React.FC = () => {
             })}
           </div>
 
-          {/* Pill-shaped date-range selector (Flare UI "Today" dropdown style) */}
-          <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0f141c] border border-[#1f2937] hover:border-[#3a4256] text-xs text-gray-300 hover:text-white transition-colors">
-            <Calendar className="w-3.5 h-3.5 text-blue-400" />
+          {/* Glossy date-range selector pill */}
+          <button className="btn-glossy btn-glossy-dark btn-glossy-sm">
+            <Calendar className="w-3.5 h-3.5" />
             <span>{timeRange === '1D' ? 'Today' : timeRange === '1W' ? 'This Week' : timeRange === '1M' ? 'This Month' : 'This Year'}</span>
-            <ChevronDown className="w-3 h-3 text-gray-500" />
+            <ChevronDown className="w-3 h-3" />
           </button>
 
-          {/* Pill export button */}
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider transition-colors">
+          {/* Glossy export button — emerald */}
+          <button className="btn-glossy btn-glossy-emerald btn-glossy-sm">
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          {/* Circular settings gear button (DashFlat floating action style) */}
-          <button className="w-9 h-9 rounded-full bg-[#0f141c] border border-[#1f2937] hover:border-purple-500/50 hover:bg-purple-500/10 flex items-center justify-center text-gray-400 hover:text-purple-400 transition-colors" aria-label="Settings">
+          {/* Glossy circular settings gear — purple */}
+          <button className="btn-glossy btn-glossy-purple btn-glossy-circle" aria-label="Settings">
             <Settings className="w-4 h-4" />
           </button>
 
-          {/* Reset dashboard — red pill */}
+          {/* Glossy reset dashboard — red/orange */}
           <button
             onClick={() => setIsResetOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider transition-colors"
+            className="btn-glossy btn-glossy-red btn-glossy-sm"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Reset</span>
@@ -309,14 +309,14 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mr-1">Range:</span>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[#0f141c] border border-[#1f2937]">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-[#0f141c] border border-[#1f2937]">
             {(['1D', '1W', '1M', '1Y'] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-3 py-1.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
+                className={`px-3 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
                   timeRange === range
-                    ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm shadow-blue-600/30'
+                    ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
                     : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                 }`}
               >

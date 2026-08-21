@@ -184,9 +184,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     discountPercent: 21,
     taxRate: 0.0,
     images: [
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=1200&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4461bfa234ac.webp',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c6da3ed2aad0.jpg'
     ],
     variations: [
       {
@@ -284,8 +284,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     discountPercent: 21,
     taxRate: 0.0,
     images: [
-      'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4461bfa234ac.webp',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg'
     ],
     variations: [
       {
@@ -361,8 +361,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     discountPercent: 19,
     taxRate: 0.0,
     images: [
-      'https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c6da3ed2aad0.jpg',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg'
     ],
     variations: [
       {
@@ -438,8 +438,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     discountPercent: 19,
     taxRate: 0.0,
     images: [
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=1200&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4461bfa234ac.webp'
     ],
     variations: [
       {
@@ -514,8 +514,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     discountPercent: 19,
     taxRate: 0.0,
     images: [
-      'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=1200&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4461bfa234ac.webp',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c6da3ed2aad0.jpg'
     ],
     variations: [
       {
@@ -590,8 +590,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     discountPercent: 19,
     taxRate: 0.0,
     images: [
-      'https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c6da3ed2aad0.jpg',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg'
     ],
     variations: [
       {
@@ -667,8 +667,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     discountPercent: 19,
     taxRate: 0.0,
     images: [
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=1200&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg',
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4461bfa234ac.webp'
     ],
     variations: [
       {
@@ -749,7 +749,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1002512403_1785399171090.png',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -824,7 +824,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1003653511_1778028958340.png',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -879,7 +879,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1001128994_1785418608575.png',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -934,7 +934,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1001780732_1773745145869.png',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -988,7 +988,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/5651726_1785395249127.jpg',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -1043,7 +1043,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1001374624_1785340223603.jpg',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -1098,7 +1098,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1002981895_1786384558388.png',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -1152,7 +1152,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1003034498_1786565806153.jpg',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -1207,7 +1207,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/1001093258_1785395794763.jpg',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -1262,7 +1262,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     taxRate: 0.0,
     images: [
       'https://assets.g2g.com/user/avatar/5618082_1785212357251.png',
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80'
+      'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg'
     ],
     variations: [
       {
@@ -1306,7 +1306,7 @@ export const INITIAL_USERS: User[] = [
     name: 'PlayBeat Super Admin',
     email: 'admin@playbeat.digital',
     role: 'super_admin',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    avatarUrl: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/161345c6408a.jpg',
     phone: '+1 (888) 752-9232',
     twoFactorEnabled: true,
     addresses: [
@@ -1331,7 +1331,7 @@ export const INITIAL_USERS: User[] = [
     name: 'Damian Thorne',
     email: 'damian@playbeat-client.com',
     role: 'customer',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    avatarUrl: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3cb67bcaa613.jpg',
     phone: '+44 20 7946 0912',
     twoFactorEnabled: false,
     addresses: [
@@ -1373,7 +1373,7 @@ export const INITIAL_ORDERS: Order[] = [
         productId: 'proj-magcubic-hy300-pro',
         productTitle: 'Magcubic HY300 PRO Smart Projector',
         productType: 'physical_projector',
-        productImage: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80',
+        productImage: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg',
         variationId: 'var-hy300-pro-std',
         variationTitle: 'Standard Package',
         quantity: 1,
@@ -1390,7 +1390,7 @@ export const INITIAL_ORDERS: Order[] = [
         productId: 'g2g-hbg-rocket-league',
         productTitle: 'HBGCoaching Rocket League Book Session',
         productType: 'digital',
-        productImage: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80',
+        productImage: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f8d44314e358.jpg',
         variationId: 'var-rl-1hr',
         variationTitle: '1 Hour Intensive Session',
         quantity: 1,
@@ -1430,7 +1430,7 @@ export const INITIAL_ORDERS: Order[] = [
         productId: 'g2g-nishashop-mlbb-cs2',
         productTitle: 'nishashop Mobile Legends Counter-Strike 2 Book Session',
         productType: 'digital',
-        productImage: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80',
+        productImage: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f8d44314e358.jpg',
         variationId: 'var-mlbb-cs2-std',
         variationTitle: '1x 90-Minute Dual Game Session',
         quantity: 1,

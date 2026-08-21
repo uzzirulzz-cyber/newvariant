@@ -344,16 +344,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [loginAttempts] = useState<LoginAttempt[]>(INITIAL_LOGIN_ATTEMPTS);
   const [secretRotations, setSecretRotations] = useState<SecretRotation[]>(INITIAL_SECRET_ROTATIONS);
 
-  const [cart, setCart] = useState<CartItem[]>([
-    {
-      productId: INITIAL_PRODUCTS[0].id,
-      product: INITIAL_PRODUCTS[0],
-      variation: INITIAL_PRODUCTS[0].variations[0],
-      quantity: 1
-    }
-  ]);
-  
-  const [wishlist, setWishlist] = useState<string[]>([INITIAL_PRODUCTS[1].id]);
+  // Cart and wishlist start EMPTY — user adds items by browsing the storefront.
+  // No pre-seeded cart items or wishlist items on first visit.
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const [compareList, setCompareList] = useState<Product[]>([INITIAL_PRODUCTS[0], INITIAL_PRODUCTS[1]]);
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]); // Default Super Admin for easy testing
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
