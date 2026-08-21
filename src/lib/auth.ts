@@ -10,7 +10,7 @@
  */
 
 import bcrypt from 'bcryptjs';
-import type { Role, User } from '../types';
+import type { Role, User } from '../types.js';
 
 const BCRYPT_ROUNDS = 10;
 

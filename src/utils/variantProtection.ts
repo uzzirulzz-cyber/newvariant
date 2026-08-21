@@ -1,4 +1,4 @@
-import { ProductVariation } from '../types';
+import { ProductVariation } from '../types.js';
 
 /**
  * Normalizes a variation key string based on product ID, variation type, and variation value.

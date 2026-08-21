@@ -1,4 +1,4 @@
-import { Category, Product, User, Order, G2GSupplierConnector, ContentSection, Coupon, AdminLog, NavItem, IptvServer, IptvCredential, WooCommerceConnection, SyncConflict, SubscriptionPlan, CustomerSubscription, WebsitePage, BlockLibraryItem, AnalyticsMetric, FunnelStep, SupportTicket, ScheduledPost, TikTokLead, MarketingCampaign, GatewayBalance, JazzCashTransaction, PaymentProof, LoginAttempt, SecretRotation } from '../types';
+import { Category, Product, User, Order, G2GSupplierConnector, ContentSection, Coupon, AdminLog, NavItem, IptvServer, IptvCredential, WooCommerceConnection, SyncConflict, SubscriptionPlan, CustomerSubscription, WebsitePage, BlockLibraryItem, AnalyticsMetric, FunnelStep, SupportTicket, ScheduledPost, TikTokLead, MarketingCampaign, GatewayBalance, JazzCashTransaction, PaymentProof, LoginAttempt, SecretRotation } from '../types.js';
 
 export const INITIAL_NAV_ITEMS: NavItem[] = [
   {

@@ -1,6 +1,6 @@
-import { Product, ProductType, ProductSource, ProductVariation, ImportJob, G2GSupplierConnector } from '../types';
-import { deduplicateVariations } from './variantProtection';
-import { buildVariationsForProduct } from './variationBuilder';
+import { Product, ProductType, ProductSource, ProductVariation, ImportJob, G2GSupplierConnector } from '../types.js';
+import { deduplicateVariations } from './variantProtection.js';
+import { buildVariationsForProduct } from './variationBuilder.js';
 
 export interface RawImportItem {
   externalId?: string;

@@ -15,7 +15,7 @@
  *   - Game-coaching / Gamepal → session-package tiers (1h / 3h / 5h / 8h)
  *   - Default / Gift cards → Standard / Premium / Lifetime
  */
-import type { Product, ProductVariation } from '../types';
+import type { Product, ProductVariation } from '../types.js';
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;

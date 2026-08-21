@@ -29,28 +29,57 @@ async function getApp(): Promise<Express> {
   // Try to load the full server.ts with all 41 routes
   try {
     await import('dotenv/config');
-    const { createApiApp } = await import('../server');
+    const { createApiApp } = await import('../server.js');
     cachedApp = createApiApp();
     console.log('[api] Full server loaded successfully');
     return cachedApp;
   } catch (err: any) {
+    // Capture the FULL error (message + stack) so the fallback handler
+    // can report it via /api/health for debugging.
     const msg = err?.message || String(err);
+    const stack = err?.stack || '';
     console.error('[api] Full server failed to load:', msg);
-    loadError = msg;
+    console.error('[api] Stack:', stack);
+    loadError = `${msg}\n${stack}`;
     throw err;
   }
 }
 
 /**
  * Build a minimal Express app as a fallback when the full server.ts
- * can't be loaded. This ensures the admin can always log in.
+ * can't be loaded. This ensures the admin can always log in AND
+ * customers can sign up (stored in-memory per serverless instance).
  */
 async function getFallbackApp(): Promise<Express> {
   const express = (await import('express')).default;
   const app: Express = express();
   app.use(express.json({ limit: '15mb' }));
 
-  // Health check
+  // In-memory user store (per serverless instance — resets on cold start)
+  // The hardcoded admin is always present.
+  const memUsers: Array<{
+    id: string;
+    name: string;
+    email: string;
+    password: string; // plaintext for fallback only (full server uses bcrypt)
+    role: string;
+    phone?: string;
+    country?: string;
+    status: string;
+    createdAt: string;
+  }> = [
+    {
+      id: 'usr-admin-default',
+      name: 'PlayBeat Super Admin',
+      email: 'admin@playbeat.digital',
+      password: 'playbeat1122',
+      role: 'super_admin',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  // Health check — includes the error that caused the fallback
   app.get('/api/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
@@ -59,36 +88,84 @@ async function getFallbackApp(): Promise<Express> {
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       warning: 'Full server failed to load — running in fallback mode',
+      loadError: loadError ? loadError.substring(0, 500) : null,
+      userCount: memUsers.length,
     });
   });
 
-  // Admin login — hardcoded fallback (always works)
+  // Admin/customer login — checks in-memory users + hardcoded admin
   app.post('/api/auth/login', async (req: Request, res: Response) => {
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ success: false, error: 'Email and password are required.' });
     }
-    if (email.trim().toLowerCase() === 'admin@playbeat.digital' && password === 'playbeat1122') {
+    const emailLower = email.trim().toLowerCase();
+    const user = memUsers.find(u => u.email.toLowerCase() === emailLower && u.password === password);
+    if (user) {
+      // Strip password before returning
+      const { password: _pw, ...safeUser } = user;
       return res.json({
         success: true,
         user: {
-          id: 'usr-admin-default',
-          name: 'PlayBeat Super Admin',
-          email: 'admin@playbeat.digital',
-          role: 'super_admin',
+          ...safeUser,
           twoFactorEnabled: false,
           addresses: [],
           totalSpent: 0,
           ordersCount: 0,
           wishlist: [],
-          status: 'active',
-          createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
         },
-        token: 'pb_hardcoded_' + Date.now(),
+        token: 'pb_fallback_' + user.id + '_' + Date.now(),
       });
     }
     return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+  });
+
+  // Customer signup — creates a new user in memory
+  app.post('/api/auth/signup', async (req: Request, res: Response) => {
+    const { email, password, name, country, phone } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required.' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters long.' });
+    }
+
+    const emailLower = email.trim().toLowerCase();
+    const existing = memUsers.find(u => u.email.toLowerCase() === emailLower);
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'An account with this email already exists.' });
+    }
+
+    const newUser = {
+      id: 'usr-' + Date.now(),
+      name: name || email.split('@')[0],
+      email: emailLower,
+      password, // plaintext for fallback only
+      role: 'customer',
+      phone: phone || undefined,
+      country: country || undefined,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+    memUsers.push(newUser);
+
+    const { password: _pw, ...safeUser } = newUser;
+    return res.status(201).json({
+      success: true,
+      user: {
+        ...safeUser,
+        twoFactorEnabled: false,
+        addresses: [],
+        totalSpent: 0,
+        ordersCount: 0,
+        wishlist: [],
+      },
+      token: 'pb_fallback_' + newUser.id + '_' + Date.now(),
+    });
   });
 
   // Products — return empty array (admin will see the catalog after full server loads)
@@ -113,7 +190,7 @@ async function getFallbackApp(): Promise<Express> {
         totalRevenue: 0,
         todaysSales: 0,
         totalOrders: 0,
-        totalCustomers: 0,
+        totalCustomers: memUsers.length,
         totalProducts: 0,
         digitalDeliveriesCount: 0,
         physicalShipmentsCount: 0,
@@ -125,6 +202,15 @@ async function getFallbackApp(): Promise<Express> {
     });
   });
 
+  // Admin users list (for Super Agent Management page)
+  app.get('/api/admin/users', (_req: Request, res: Response) => {
+    const safeUsers = memUsers.map(u => {
+      const { password, ...safe } = u;
+      return safe;
+    });
+    res.json({ users: safeUsers, fallback: true });
+  });
+
   // Catch-all for other API routes — return a friendly error
   app.all('/api/*', (req: Request, res: Response) => {
     res.status(503).json({
@@ -132,6 +218,7 @@ async function getFallbackApp(): Promise<Express> {
       error: 'This endpoint is not available in fallback mode. The full server failed to load.',
       fallback: true,
       path: req.path,
+      loadError: loadError ? loadError.substring(0, 200) : null,
     });
   });
 

@@ -18,7 +18,7 @@
  *   from mockData so the app has data on first deploy.
  */
 
-import { getDb, isMongoConfigured } from './mongodb';
+import { getDb, isMongoConfigured } from './mongodb.js';
 import {
   INITIAL_CATEGORIES,
   INITIAL_PRODUCTS,
@@ -28,12 +28,12 @@ import {
   INITIAL_CONTENT,
   INITIAL_COUPONS,
   INITIAL_ADMIN_LOGS,
-} from '../data/mockData';
+} from '../data/mockData.js';
 import type {
   Product, Category, User, Order, Coupon, AdminLog,
   G2GSupplierConnector, ContentSection, ImportJob, OrderStatus,
-} from '../types';
-import { hashPassword } from './auth';
+} from '../types.js';
+import { hashPassword } from './auth.js';
 
 // ============================================================
 // In-memory fallback state (used when MongoDB is not configured)

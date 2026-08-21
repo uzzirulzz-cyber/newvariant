@@ -19,16 +19,16 @@ import {
   INITIAL_CONTENT,
   INITIAL_COUPONS,
   INITIAL_ADMIN_LOGS
-} from './src/data/mockData';
-import { Product, Order, User, G2GSupplierConnector, ContentSection, Coupon, AdminLog, ImportJob } from './src/types';
-import { processSmartProductImport, RawImportItem } from './src/utils/smartImportEngine';
-import { deduplicateVariations } from './src/utils/variantProtection';
-import { buildVariationsForProduct, needsVariationMigration } from './src/utils/variationBuilder';
-import * as repo from './src/lib/repository';
+} from './src/data/mockData.js';
+import { Product, Order, User, G2GSupplierConnector, ContentSection, Coupon, AdminLog, ImportJob } from './src/types.js';
+import { processSmartProductImport, RawImportItem } from './src/utils/smartImportEngine.js';
+import { deduplicateVariations } from './src/utils/variantProtection.js';
+import { buildVariationsForProduct, needsVariationMigration } from './src/utils/variationBuilder.js';
+import * as repo from './src/lib/repository.js';
 import {
   hashPassword, comparePassword, generateToken, sanitizeUser,
   isValidEmail, validatePassword, isAdminRole,
-} from './src/lib/auth';
+} from './src/lib/auth.js';
 
 /**
  * Create the Express app with all API routes registered.
