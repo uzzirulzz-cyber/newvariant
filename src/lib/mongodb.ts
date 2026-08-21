@@ -53,8 +53,10 @@ async function connectMongo(): Promise<{ client: MongoClient; db: Db }> {
 
   globalThis.__mongoConnPromise = (async () => {
     const client = new MongoClient(MONGODB_URI, {
-      // Server selection timeout — fail fast in dev so we don't hang the API.
-      serverSelectionTimeoutMS: 5000,
+      // Longer timeout for Atlas cold starts
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
     });
 
     await client.connect();

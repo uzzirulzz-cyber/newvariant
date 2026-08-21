@@ -151,8 +151,15 @@ async function seedIfEmpty(): Promise<void> {
  * Ensure MongoDB is seeded before reading. No-op for in-memory mode.
  */
 async function ensureSeeded() {
-  if (isMongoConfigured) {
+  if (!isMongoConfigured) return;
+  try {
     await seedIfEmpty();
+  } catch (err) {
+    console.error('[repository] MongoDB connection failed, using in-memory fallback:', (err as Error)?.message?.substring(0, 100));
+    // Reset the connection promise so the next call can retry
+    globalThis.__mongoConnPromise = undefined;
+    globalThis.__mongoClient = undefined;
+    globalThis.__mongoDb = undefined;
   }
 }
 
@@ -162,10 +169,17 @@ async function ensureSeeded() {
 
 export async function getProducts(): Promise<Product[]> {
   if (isMongoConfigured) {
-    await ensureSeeded();
-    const db = await getDb();
-    const docs = await db.collection('products').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
-    return docs as unknown as Product[];
+    try {
+      await ensureSeeded();
+      const db = await getDb();
+      const docs = await db.collection('products').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
+      return docs as unknown as Product[];
+    } catch {
+      console.warn('[repository] MongoDB error in getProducts, using in-memory');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
   return [...memProducts];
 }
@@ -694,4 +708,20 @@ export async function getCollectionCounts(): Promise<Record<string, number>> {
     names.map(async n => [n, await db.collection(n).countDocuments()])
   );
   return Object.fromEntries(entries);
+}
+
+// ============================================================
+// SAFE MONGODB WRAPPER — catches errors and returns null
+// so the server never crashes on MongoDB timeouts
+// ============================================================
+async function safeMongo<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (err) {
+    console.warn('[repository] MongoDB error (using fallback):', (err as Error)?.message?.substring(0, 80));
+    globalThis.__mongoConnPromise = undefined;
+    globalThis.__mongoClient = undefined;
+    globalThis.__mongoDb = undefined;
+    return null;
+  }
 }
