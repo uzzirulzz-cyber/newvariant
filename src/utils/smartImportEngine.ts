@@ -1,5 +1,6 @@
 import { Product, ProductType, ProductSource, ProductVariation, ImportJob, G2GSupplierConnector } from '../types';
 import { deduplicateVariations } from './variantProtection';
+import { buildVariationsForProduct } from './variationBuilder';
 
 export interface RawImportItem {
   externalId?: string;
@@ -133,19 +134,67 @@ export function processSmartProductImport(
           };
         });
       } else {
-        // Create 1 default variant
-        rawVariations = [
-          {
-            id: `var-${productId}-default`,
-            type: 'Edition / Tier',
-            value: 'Standard Global Access',
-            costPrice,
-            price: sellingPrice,
-            stock: item.stock || 100,
-            sku: `${generatedSku}-STD`,
-            isAvailable: true
-          }
-        ];
+        // No variations in the import payload — auto-generate a rich
+        // category-aware variations set (durations / editions / sessions)
+        // instead of falling back to a single "Standard Global Access" row.
+        // The product is fully constructed first so buildVariationsForProduct
+        // can read its category / type / title / price / sku.
+        // NOTE: categoryId/categoryName are determined later in this function,
+        // so we use the same fallback ("gaming") that the function uses below.
+        // The real values are then merged into the final newProduct object.
+        const previewProduct: Product = {
+          id: productId,
+          title: sanitizedTitle,
+          slug: baseSlug,
+          shortDescription: '',
+          description: '',
+          categoryId: options.defaultCategoryId || 'gaming',
+          categoryName: 'Gaming & Keys',
+          productType: prodType,
+          price: sellingPrice,
+          compareAtPrice: comparePrice,
+          costPrice,
+          variations: [],
+          tags: [],
+          isFeatured: false,
+          isTrending: false,
+          isBestSeller: false,
+          isLimitedTime: false,
+          isFlashDeal: false,
+          status: 'published',
+          rating: 5.0,
+          reviewCount: 0,
+          reviews: [],
+          stock: item.stock || 100,
+          lowStockThreshold: 10,
+          sku: generatedSku,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as Product;
+
+        const generated = buildVariationsForProduct(previewProduct);
+        if (generated && generated.length > 0) {
+          // Re-key variation IDs to use the real product ID we just generated
+          rawVariations = generated.map((v, idx) => ({
+            ...v,
+            id: `var-${productId}-${idx + 1}`,
+          }));
+        } else {
+          // Final fallback: 1 default variant (only reached for physical_projector
+          // imports, which should not happen via CSV but just in case)
+          rawVariations = [
+            {
+              id: `var-${productId}-default`,
+              type: 'Edition / Tier',
+              value: 'Standard Global Access',
+              costPrice,
+              price: sellingPrice,
+              stock: item.stock || 100,
+              sku: `${generatedSku}-STD`,
+              isAvailable: true,
+            },
+          ];
+        }
       }
 
       // Run duplicate variation protection

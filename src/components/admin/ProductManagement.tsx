@@ -32,6 +32,7 @@ export const ProductManagement: React.FC = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [csvUploading, setCsvUploading] = useState(false);
+  const [isMigratingVars, setIsMigratingVars] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // CSV import — handles both simple CSV and WooCommerce export format
@@ -242,6 +243,74 @@ export const ProductManagement: React.FC = () => {
     }
   };
 
+  // Migrate product variations
+  // Calls /api/admin/products/migrate-variations — a dry-run first, then
+  // asks for confirmation, then applies.
+  const handleMigrateVariations = async () => {
+    if (isMigratingVars) return;
+    setIsMigratingVars(true);
+
+    try {
+      // Step 1: dry-run preview
+      const previewRes = await fetch('/api/admin/products/migrate-variations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apply: false }),
+      });
+      const preview = await previewRes.json();
+
+      if (!preview.success) {
+        addToast('error', 'Migration Failed', preview.error || 'Could not preview variations.');
+        setIsMigratingVars(false);
+        return;
+      }
+
+      if (preview.targeted === 0) {
+        addToast('info', 'Nothing to Migrate', 'All products already have rich variations.');
+        setIsMigratingVars(false);
+        return;
+      }
+
+      const sampleList = preview.sample.length > 0
+        ? preview.sample.map((s: any) => `• ${s.title} (${s.categoryId}) → ${s.variationsCount} variants`).join('\n')
+        : '';
+      const ok = window.confirm(
+        `Variation Migration Preview\n\n` +
+        `Scanned: ${preview.scanned}\n` +
+        `Will update: ${preview.targeted}\n` +
+        `Skipped (projectors / already migrated): ${preview.skipped}\n\n` +
+        `Sample:\n${sampleList}\n\n` +
+        `Apply changes to the database now?`
+      );
+      if (!ok) {
+        addToast('info', 'Migration Cancelled', 'No changes were applied.');
+        setIsMigratingVars(false);
+        return;
+      }
+
+      // Step 2: apply
+      const applyRes = await fetch('/api/admin/products/migrate-variations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apply: true }),
+      });
+      const applied = await applyRes.json();
+      if (applied.success) {
+        addToast(
+          'success',
+          'Variations Migrated',
+          `Updated ${applied.targeted} products with rich variations. Reloading…`
+        );
+        setTimeout(() => window.location.reload(), 1800);
+      } else {
+        addToast('error', 'Migration Failed', applied.error || 'Could not apply migration.');
+      }
+    } catch (err: any) {
+      addToast('error', 'Migration Failed', err?.message || 'Network error during migration.');
+    }
+    setIsMigratingVars(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header & Controls */}
@@ -281,6 +350,17 @@ export const ProductManagement: React.FC = () => {
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Product</span>
+          </button>
+
+          {/* Migrate Variations */}
+          <button
+            onClick={handleMigrateVariations}
+            disabled={isMigratingVars}
+            className="btn-glossy btn-glossy-blue btn-glossy-sm"
+            title="Generate category-aware variations (durations, editions, sessions) for products that currently have only the CSV-import default variation."
+          >
+            {isMigratingVars ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
+            <span>Migrate Variations</span>
           </button>
 
           {/* Dashboard Reset */}

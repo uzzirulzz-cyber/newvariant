@@ -188,3 +188,65 @@ Stage Summary:
     * PAYMENTS & SECURITY: Financial Balance, Payment Gateways, JazzCash & Merchant, Payment Proofs, Security & Audit Logs
 - Sidebar footer items (Themes & Sections → ContentManager, Navigation Customizer → NavigationManager) preserved
 - Existing admin pages (Dashboard, Orders, Catalog Products, License Vault, Payment Gateways, Marketing, G2G, Dedup, System Status, Admin Roles, Content, Navigation Customizer) all preserved and accessible
+
+---
+Task ID: 7
+Agent: main
+Task: Update database product variations + secure admin login (no autofill/save)
+
+Work Log:
+- Created src/utils/variationBuilder.ts — category-aware variation generator with rules per category:
+    * streaming → 1/3/6/12-month duration tiers
+    * iptv → duration × connection-count tiers
+    * software → edition tiers (Office/Windows/AutoCAD/AV branches)
+    * gaming → Standard/Deluxe/Ultimate (Steam/Battle.net/Console branches)
+    * saas-tools → duration × seat tiers (incl. Team-5-user pack)
+    * game-coaching/gamepal → session packages (1h/3h/5h/8h)
+    * gift-cards/default → Standard/Premium/Lifetime
+  Also exports needsVariationMigration() heuristic — targets products that have
+  zero variations or exactly the CSV-import default "Standard Global Access".
+- Added POST /api/admin/products/migrate-variations endpoint in server.ts:
+    * Dry-run mode (apply=false): returns preview counts + 5-item sample
+    * Apply mode (apply=true): writes to MongoDB via repo.updateProduct()
+    * Best-effort admin log (non-fatal if Mongo unreachable)
+    * Logs every invocation to admin_logs collection
+- Updated smartImportEngine.ts so future CSV imports auto-generate rich
+  variations via buildVariationsForProduct() instead of the single
+  "Standard Global Access" default variant.
+- Added "Migrate Variations" button to admin ProductManagement.tsx toolbar:
+    * Calls dry-run first, shows confirmation dialog with sample
+    * On confirm, applies and reloads the page
+    * Toast feedback at every step
+- Hardened AdminLoginGate.tsx per operator policy (Aug 2026):
+    * Email field starts empty (was pre-filled with admin@playbeat.digital)
+    * Password field starts empty
+    * Removed the hardcoded credential fallback (HARDCODED_ADMIN constant)
+    * Removed the credentials hint box that displayed admin@playbeat.digital / playbeat1122
+    * autoComplete="off" on form, autoComplete="new-password" on password input
+    * Non-standard name attributes (pb-admin-identity / pb-admin-secret) to
+      prevent browser password managers from matching saved credentials
+    * data-lpignore + data-1p-ignore to suppress LastPass + 1Password popups
+    * Password field is force-remounted on every submit (key=pw-${pwKey}) to
+      defeat the browser autofill cache that lingers even with autoComplete="off"
+    * On success: password is cleared immediately so it cannot be reused
+    * On failure: password is cleared + remounted so the user must retype
+- Added scripts/update-product-variations.mjs — standalone Node CLI that
+  connects directly to MongoDB Atlas and runs the same migration logic
+  (operator escape hatch for CI/CD or one-off DB updates without the UI).
+- Added scripts/test-variation-builder.ts + scripts/test-migration-endpoint.ts
+  smoke tests — verified the variation builder produces correct category-aware
+  tiers for streaming/software/gaming/saas/coaching/iptv samples, and that
+  physical projectors are correctly skipped.
+- TypeScript check: passes clean (npx tsc --noEmit — no errors).
+
+Stage Summary:
+- Two ways to update product variations on the live database:
+    1. Admin UI: Admin → Catalog Products → "Migrate Variations" button
+       (dry-run preview → confirm → apply)
+    2. CLI: node scripts/update-product-variations.mjs --apply
+- Admin login is now hardened: no autofill, no credential display, no
+  client-side fallback, password cleared on every submit. The browser
+  never sees or stores the admin password — every login attempt goes
+  through POST /api/auth/login (bcrypt hash check against MongoDB users
+  collection, with the server-side hardcoded admin@playbeat.digital /
+  playbeat1122 fallback preserved for cold-start resilience).

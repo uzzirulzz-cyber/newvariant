@@ -18,6 +18,7 @@ import {
 import { Product, Order, User, G2GSupplierConnector, ContentSection, Coupon, AdminLog, ImportJob } from './src/types';
 import { processSmartProductImport, RawImportItem } from './src/utils/smartImportEngine';
 import { deduplicateVariations } from './src/utils/variantProtection';
+import { buildVariationsForProduct, needsVariationMigration } from './src/utils/variationBuilder';
 import * as repo from './src/lib/repository';
 import {
   hashPassword, comparePassword, generateToken, sanitizeUser,
@@ -304,6 +305,87 @@ export function createApiApp(): Express {
     });
 
     res.json({ success: true, modifiedCount });
+  });
+
+  // ----------------------------------------------------
+  // PRODUCT VARIATIONS MIGRATION
+  // POST /api/admin/products/migrate-variations
+  //   - Scans every product in the catalog
+  //   - For products that currently have only the CSV-import default
+  //     "Standard Global Access" variation (or zero variations),
+  //     replaces the variations array with category-aware tiers
+  //     (durations, editions, sessions, etc.).
+  //   - Physical projectors are skipped — they already have bundle variations.
+  //   - Returns counts so the admin UI can show a success toast.
+  // Body: { apply?: boolean }
+  //   - apply=false (default) → dry run, returns what would change
+  //   - apply=true           → writes to the database
+  // ----------------------------------------------------
+  app.post('/api/admin/products/migrate-variations', async (req, res) => {
+    const apply = Boolean(req.body?.apply);
+    try {
+      const all = await repo.getProducts();
+      const targets = all.filter(needsVariationMigration);
+
+      let updatedCount = 0;
+      const skippedCount = all.length - targets.length;
+      const sample: { id: string; title: string; categoryId: string; variationsCount: number }[] = [];
+
+      for (const p of targets) {
+        const newVars = buildVariationsForProduct(p);
+        if (!newVars || newVars.length === 0) continue;
+
+        const totalStock = newVars.reduce((s, v) => s + (v.stock || 0), 0);
+
+        if (apply) {
+          await repo.updateProduct(p.id, {
+            variations: newVars,
+            stock: totalStock,
+          });
+        }
+
+        updatedCount++;
+        if (sample.length < 5) {
+          sample.push({
+            id: p.id,
+            title: p.title,
+            categoryId: p.categoryId || 'unknown',
+            variationsCount: newVars.length,
+          });
+        }
+      }
+
+      // Best-effort admin log — don't fail the migration response if the
+      // audit log write itself can't reach the database.
+      try {
+        await repo.createAdminLog({
+          id: `log-${Date.now()}-migrate-vars`,
+          adminName: 'PlayBeat Admin',
+          adminEmail: 'admin@playbeat.digital',
+          action: 'Variations Migration',
+          targetType: 'product',
+          details: `${apply ? 'Applied' : 'Dry-run preview'}: ${updatedCount} products targeted, ${skippedCount} skipped. Sample: ${sample.map(s => `${s.title} (${s.variationsCount} vars)`).join('; ')}`,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (logErr) {
+        console.warn('[migrate-variations] admin log write failed (non-fatal):', (logErr as Error)?.message?.substring(0, 100));
+      }
+
+      return res.json({
+        success: true,
+        apply,
+        scanned: all.length,
+        targeted: updatedCount,
+        skipped: skippedCount,
+        sample,
+      });
+    } catch (err: any) {
+      console.error('[migrate-variations] failed:', err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || 'Variation migration failed',
+      });
+    }
   });
 
   // ----------------------------------------------------
