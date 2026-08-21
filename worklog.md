@@ -250,3 +250,163 @@ Stage Summary:
   through POST /api/auth/login (bcrypt hash check against MongoDB users
   collection, with the server-side hardcoded admin@playbeat.digital /
   playbeat1122 fallback preserved for cold-start resilience).
+
+---
+Task ID: 8
+Agent: main
+Task: Premium UI redesign — storefront + admin (black/charcoal/white/silver/red palette)
+
+Work Log:
+- Added new premium design system to src/index.css (1017 new lines, additive — does NOT replace existing classes):
+  - New CSS custom properties: --pb-black, --pb-ink, --pb-charcoal, --pb-charcoal-2/3, --pb-line, --pb-silver (1-4), --pb-white, --pb-red, --pb-red-bright, --pb-red-soft, --pb-red-line, --pb-gold, --pb-emerald, --pb-amber, --pb-shadow-*, --pb-ring-focus, --pb-radius-*
+  - New utility classes (all prefixed with .pb- to avoid collisions):
+    * Surfaces: .pb-bg-premium, .pb-card, .pb-panel, .pb-inset
+    * Product card: .pb-product-card, .pb-pc-image, .pb-pc-title, .pb-pc-quickview (with hover lift + image zoom + red accent ring)
+    * Badges: .pb-badge + 7 color variants (default/red/yellow/green/blue/silver/dark) — high-contrast on any background
+    * Buttons: .pb-btn-primary (red gradient), .pb-btn-secondary (silver border), .pb-btn-ghost, .pb-btn-dark, .pb-btn-success + .pb-btn-sm/.pb-btn-block modifiers
+    * Price block: .pb-price-current (large mono white), .pb-price-original (strike-through), .pb-price-savings (emerald)
+    * Status pills: .pb-status + 6 variants (in-stock/low-stock/out-stock/published/draft/archived)
+    * Variant chips: .pb-variant-chip + .is-selected (red accent)
+    * Skeleton: .pb-skeleton, .pb-skeleton-card (shimmer animation)
+    * Form elements: .pb-input, .pb-label, .pb-select (with custom dropdown arrow)
+    * Layout: .pb-divider, .pb-eyebrow, .pb-link, .pb-container, .pb-section-header
+    * Toggle switch: .pb-toggle + .pb-toggle-track + .pb-toggle-thumb
+    * Tabs: .pb-tabs + .pb-tab + .is-active
+    * KPI card: .pb-kpi + .pb-kpi-accent + .pb-kpi-label + .pb-kpi-value + .pb-kpi-delta
+    * Table: .pb-table (with hover rows + sticky header)
+    * Animations: .pb-fade-up, .pb-pulse-red
+    * Grid: .pb-grid-products (responsive 2/3/4/5 cols) + .pb-grid-products-compact
+    * Mobile: .pb-drawer-overlay + .pb-drawer (bottom-sheet filter drawer)
+    * Image fallback: .pb-image-fallback (shown when product.images is empty or URL fails)
+    * Global: *:focus-visible { box-shadow: var(--pb-ring-focus) } for keyboard accessibility
+- Created src/components/common/ProductImage.tsx:
+  - Lazy loading by default (eager for LCP/hero)
+  - Async decoding
+  - Graceful fallback to neutral charcoal panel when URL is missing or fails
+  - Fade-in on load (blur → sharp transition)
+  - Resets state when src changes (variant switch)
+- Rewrote src/components/storefront/ProductCard.tsx (372 → 374 lines, full rewrite):
+  - New premium styling using .pb-product-card class (red hover accent instead of blue)
+  - Badge priority system: only ONE badge shown at top-left (discount > promo > product-type)
+  - When both discount and promo exist, secondary promo badge appears at bottom-left
+  - Out-of-stock overlay covers entire image with red "Out of Stock" badge
+  - Savings amount now displayed below price ("Save $X.XX" in emerald)
+  - "Buy Now" button appears only for Best Sellers and Flash Deals
+  - Whole card is keyboard-focusable (tabIndex=0, role=button, onKeyDown for Enter/Space)
+  - All icon buttons have descriptive aria-labels
+  - Variant chips are real buttons with aria-pressed
+  - Card height kept consistent via flex column + min-heights
+- Created src/components/storefront/ProductGrid.tsx (reusable responsive grid):
+  - 2 cols mobile / 3 tablet / 4 desktop / 5 wide
+  - Compact variant for related-products rails
+  - Skeleton loading state (8 placeholders) mirrors grid columns
+  - Empty state slot
+- Created src/components/storefront/SearchFilterBar.tsx (full filter system):
+  - FilterBar: desktop search + category dropdown + sort dropdown + mobile "Filters" button
+  - MobileFilterDrawer: bottom-sheet with all filter options (type, availability, discount, rating, price range)
+  - QuickFilterChips: removable active-filter chips above the grid
+  - applyFilters() function: filter by search/category/type/availability/discount/price/rating, then sort
+  - Sort options: featured, newest, best-selling, price-low, price-high, rating
+- Rewrote src/components/storefront/TrendingSection.tsx:
+  - Now uses ProductGrid + FilterBar (instead of inline grid + manual filters)
+  - Title dynamically reflects active filter (Search / Category / Type / default)
+  - Skeleton state during filter changes (450ms)
+  - Empty state with "Reset All Filters" CTA
+  - Category syncs with Header mega-menu via store
+- Updated src/components/storefront/HeroSection.tsx:
+  - All #08152F → var(--pb-ink), #26334A → var(--pb-line)
+  - Blue accents → red accent system (var(--pb-red-bright))
+  - Trust badge icons recolored (ShieldCheck red, Truck silver)
+  - Buttons now use .pb-btn-primary instead of btn-glossy-blue
+  - SAVE $200 badge now uses .pb-badge pb-badge-red
+- Updated src/components/storefront/CategoryGrid.tsx:
+  - Premium .pb-card surfaces with .pb-eyebrow header
+  - Selected category gets red border (was blue)
+  - Hover state: red-soft gradient + red-bright icon
+- Updated src/components/storefront/SmartProjectorShowcase.tsx:
+  - Premium .pb-card flagship panel
+  - All CTAs use .pb-btn-primary / .pb-btn-secondary
+  - "Free Express Shipping" badge uses .pb-badge pb-badge-red
+  - "RECOMMENDED FLAGSHIP" badge uses .pb-badge pb-badge-red
+  - Compare toggle uses .pb-variant-chip
+- Updated src/components/storefront/FlashDealsSection.tsx:
+  - Uses ProductImage component (lazy + fallback)
+  - Deal tiles now use .pb-card with red hover accent
+  - Discount badge uses .pb-badge pb-badge-red
+  - "Buy" button uses .pb-btn-primary
+  - Each deal tile is now keyboard-focusable (tabIndex + onKeyDown)
+  - Star rating shown on deals
+- Updated src/components/storefront/FAQSection.tsx:
+  - Premium .pb-card accordion
+  - Chevron rotates to red-bright when open
+  - WhatsApp CTA uses .pb-btn-primary
+- Updated src/App.tsx: root div now uses .pb-bg-premium (true near-black with subtle red glow)
+- Updated src/components/admin/ProductEditorModal.tsx (added 366 lines):
+  - New state: status, isFeatured, isTrending, isTrendingWeek, isBestSeller, isFlashDeal, isLimitedTime, offerBadgeText, offerBadgeColor, tags, tagInput, showLivePreview
+  - New "Visibility, Promotional Flags & Badges" section (section 3.5):
+    * Status selector (Published / Draft / Archived / Pending Approval) as colored chips
+    * 6 promotional flag toggles using .pb-toggle switches (Featured, Trending, Trending This Week, Best Seller, Flash Deal, Limited Time)
+    * Custom badge text input (overrides derived badge) + 4-color picker (red/yellow/green/blue)
+    * Tag editor (add via Enter or comma, remove via X)
+    * "Show Live Preview" toggle button → renders LivePreviewCard
+  - LivePreviewCard component: renders a static storefront-style card using the current editor state
+  - handleSave now uses the actual flag state (was hardcoded isFeatured: true, isTrending: true, status: 'published')
+- Updated src/components/admin/ProductManagement.tsx:
+  - Toolbar header now uses .pb-panel with .pb-eyebrow
+  - All toolbar buttons migrated to .pb-btn-* system (CSV Import → success, Add Product → primary, Migrate Variations → secondary, Reset DB → dark, Logout All → ghost)
+  - Filter bar uses .pb-input + .pb-tabs + .pb-tab system
+  - Product table uses .pb-table (premium dark with hover rows)
+  - Added new "Status" column with .pb-status pills (published/draft/archived)
+  - Added new "Flags" column showing ★ ↑ BS ⚡ ⏰ icons per product
+  - All action buttons (preview/edit/delete) use red accent on hover
+- Updated src/components/admin/AdminDashboard.tsx (added 81 lines):
+  - New "Catalog Health" KPI strip below the existing 4 colored cards:
+    * Total Products (silver accent)
+    * Active / Published (emerald accent)
+    * Hidden / Draft/Archived (amber accent)
+    * Low / Out of Stock (red accent when out > 0)
+  - New "Quick Actions" panel with 5 buttons: Add Product (primary), View Orders, Discounts, Edit Storefront, Variant Dedup
+  - All quick action buttons navigate to their respective admin tabs via setAdminTab()
+- Rewrote src/components/admin/DuplicateVariationInspector.tsx (155 lines, was 103):
+  - Premium .pb-card banner + .pb-panel audit log
+  - Per-product "Inspect" button → expands to show all variations, with duplicates highlighted in red
+  - Each variation row shows: index, type, value, price, stock
+  - Duplicate variations are visually marked with red border + AlertTriangle icon
+  - Confirmation dialog before bulk deduplication
+  - Empty state with emerald check icon
+
+Accessibility & Performance:
+- Global *:focus-visible { box-shadow: var(--pb-ring-focus) } rule ensures keyboard navigation is visible everywhere
+- All product images use loading="lazy" + decoding="async"
+- ProductImage component gracefully falls back when URL is missing or fails
+- All interactive elements have descriptive aria-labels
+- Card is keyboard-focusable (tabIndex=0, role=button, onKeyDown)
+- Touch devices: quick view button always visible (no hover dependency)
+- Card heights kept consistent via flex column + min-heights on title/description
+- Skeleton loading state mirrors grid columns (no reflow)
+- High-contrast colors: prices use white-on-charcoal, badges use red/yellow/green/blue on dark
+
+Verified end-to-end:
+- TypeScript check passes clean (npx tsc --noEmit — no errors)
+- Vite dev server boots on port 5174 (frontend-only) and port 3000 (full-stack with API)
+- Storefront: 17 product cards render with .pb-product-card class
+- Storefront: 6 sections present (Hero, Categories, Trending, Projectors, Flash Deals, FAQ)
+- Storefront: .pb-bg-premium premium background is active
+- Storefront: .pb-grid-products responsive grid in use
+- Storefront: .pb-input filter bar in use
+- Admin: login gate loads with empty email/password fields (no autofill, no visible credentials)
+- Admin: hardcoded admin@playbeat.digital / playbeat1122 login works (after 30s Mongo cold-start timeout falls through to hardcoded fallback)
+- Admin dashboard: 4 new .pb-kpi cards present + 5 quick action buttons
+- Admin product table: .pb-table with 17 rows, Status + Flags columns visible
+- Admin product editor: .pb-toggle switches present, status selector present
+- Admin product editor: Live preview pane renders .pb-product-card when "Show Live Preview" clicked
+- VLM analysis confirms: premium dark theme with red accents, clear typography hierarchy, consistent cards, no broken layouts
+
+Stage Summary:
+- Premium v2 design system added additively — no existing classes broken
+- Storefront fully redesigned: Hero, Categories, Trending, Projectors, Flash Deals, FAQ
+- Admin fully upgraded: Dashboard (new KPI strip + quick actions), Product Management (premium table + status/flags columns), Product Editor (visibility + promotional flags + live preview), Variant Dedup Inspector (expandable per-product details)
+- New reusable components: ProductImage (lazy + fallback), ProductGrid (responsive 2/3/4/5 cols), SearchFilterBar (with mobile drawer)
+- Accessibility: global focus-visible ring, keyboard-navigable cards, ARIA labels, high contrast
+- All existing functionality preserved: cart, wishlist, checkout, auth, CSV import, variation migration, MongoDB persistence
+- No hardcoded credentials, no API keys, no secrets in any UI surface

@@ -30,6 +30,10 @@ import {
   ChevronDown,
   Download,
   Settings,
+  Plus,
+  Tag,
+  Palette,
+  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -56,7 +60,7 @@ import { motion, AnimatePresence } from 'motion/react';
  * from mock data (useful for demos and testing).
  */
 export const AdminDashboard: React.FC = () => {
-  const { orders, products, formatPrice, addToast } = useStore();
+  const { orders, products, formatPrice, addToast, setAdminTab } = useStore();
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -301,6 +305,81 @@ export const AdminDashboard: React.FC = () => {
               <div key={i} className="flex-1 bg-orange-300/40 rounded-sm" style={{ height: `${h}%` }} />
             ))}
           </div>
+        </button>
+      </div>
+
+      {/* ============================================
+          CATALOG HEALTH STRIP (Premium v2)
+          Breaks down the catalog: Total / Active / Hidden / Low-Stock
+          Plus quick-action buttons (Add Product, Migrate Variations, etc.)
+          ============================================ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {(() => {
+          const total = products.length;
+          const active = products.filter((p) => p.status === 'published').length;
+          const hidden = products.filter((p) => p.status === 'draft' || p.status === 'archived').length;
+          const lowStock = products.filter((p) => p.stock <= p.lowStockThreshold && p.stock > 0).length;
+          const outStock = products.filter((p) => p.stock <= 0).length;
+
+          const stats = [
+            { label: 'Total Products', value: total, accent: 'var(--pb-silver-2)', delta: `${active} active` },
+            { label: 'Active / Published', value: active, accent: 'var(--pb-emerald)', delta: `${Math.round((active / Math.max(total, 1)) * 100)}% of catalog` },
+            { label: 'Hidden (Draft/Archived)', value: hidden, accent: 'var(--pb-amber)', delta: hidden === 0 ? 'None hidden' : 'Needs review' },
+            { label: 'Low / Out of Stock', value: lowStock + outStock, accent: outStock > 0 ? '#FF2E42' : 'var(--pb-amber)', delta: `${lowStock} low · ${outStock} out` },
+          ];
+
+          return stats.map((s) => (
+            <div key={s.label} className="pb-kpi">
+              <div className="pb-kpi-accent" style={{ background: s.accent }} />
+              <div className="pb-kpi-label">{s.label}</div>
+              <div className="pb-kpi-value">{s.value}</div>
+              <div className="pb-kpi-delta flat">{s.delta}</div>
+            </div>
+          ));
+        })()}
+      </div>
+
+      {/* ============================================
+          QUICK ACTIONS (Premium v2)
+          ============================================ */}
+      <div className="flex flex-wrap gap-2 pb-panel p-3 rounded-xl">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--pb-silver-3)] self-center mr-2">
+          Quick Actions:
+        </span>
+        <button
+          onClick={() => setAdminTab('products')}
+          className="pb-btn pb-btn-primary pb-btn-sm"
+        >
+          <Plus className="w-3 h-3" />
+          <span>Add Product</span>
+        </button>
+        <button
+          onClick={() => setAdminTab('orders')}
+          className="pb-btn pb-btn-secondary pb-btn-sm"
+        >
+          <ShoppingCart className="w-3 h-3" />
+          <span>View Orders</span>
+        </button>
+        <button
+          onClick={() => setAdminTab('discounts')}
+          className="pb-btn pb-btn-secondary pb-btn-sm"
+        >
+          <Tag className="w-3 h-3" />
+          <span>Discounts</span>
+        </button>
+        <button
+          onClick={() => setAdminTab('content')}
+          className="pb-btn pb-btn-secondary pb-btn-sm"
+        >
+          <Palette className="w-3 h-3" />
+          <span>Edit Storefront</span>
+        </button>
+        <button
+          onClick={() => setAdminTab('dedup')}
+          className="pb-btn pb-btn-secondary pb-btn-sm"
+        >
+          <Layers className="w-3 h-3" />
+          <span>Variant Dedup</span>
         </button>
       </div>
 

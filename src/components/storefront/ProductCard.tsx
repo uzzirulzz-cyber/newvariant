@@ -7,39 +7,73 @@ import {
   Heart,
   Zap,
   Truck,
-  ArrowRight,
-  ShieldCheck,
-  Check,
   Eye,
+  ShieldCheck,
   CheckCircle2,
   AlertCircle,
+  Check,
+  Tag,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ProductImage } from '../common/ProductImage';
 
 interface ProductCardProps {
   product: Product;
   /**
-   * Compact mode removes the variant chips row and shortens the description,
-   * useful for recommendation rails or compact search results.
+   * Compact mode — used by related-products rails. Hides the variant chips
+   * row and shortens the description. The image, badges, price, and CTAs
+   * remain unchanged so the card stays visually consistent everywhere.
    */
   compact?: boolean;
 }
 
 /**
- * Premium product card.
+ * ============================================================================
+ *  PlayBeat Premium Product Card (v2)
+ * ============================================================================
+ *  Designed per the August 2026 brief:
+ *    Black / charcoal / white / silver / subtle red accent.
  *
- * Design priorities (kept in sync with the user's brief):
- *  - High-quality image with consistent aspect ratio + smooth hover zoom.
- *  - Category badge, controlled title wrapping, one-line description.
- *  - Starting price + original price with discount indicator.
- *  - Variant selector when multiple variants exist (max 3 chips).
- *  - Stock / availability indicator.
- *  - Prominent Add-to-Cart + Quick View.
- *  - Wishlist / favorite icon (top-right).
- *  - Trust / instant-delivery indicator where applicable.
- *  - Consistent height, aligned pricing, consistent buttons, equal spacing.
- *  - Single source of truth: same card is used by the catalog grid, search
- *    results, and the related-products rail.
+ *  Each card includes:
+ *    • High-quality image with consistent 4:3 aspect + lazy loading + fallback.
+ *    • Category badge (top-left).
+ *    • Promo tag (NEW / SALE / POPULAR / BEST SELLER / LIMITED) or product-type
+ *      badge (Instant Key / Tracked 4K) when no promo tag is set.
+ *    • Discount % badge (red) when on sale.
+ *    • Wishlist icon (top-right).
+ *    • Quick View button (reveal-on-hover, always-on-touch).
+ *    • In-cart indicator.
+ *    • Rating + review count.
+ *    • Product title (2-line clamp, min-height for alignment).
+ *    • Short description (1-line clamp).
+ *    • Variant selector (chips, max 3 visible + "+N").
+ *    • Stock status (In stock / Low / Out).
+ *    • Total sold indicator.
+ *    • Current price (large mono) + original strike-through + savings amount.
+ *    • Trust indicator (Instant key / Free shipping / Verified).
+ *    • Prominent Add to Cart + secondary Quick View icon button.
+ *    • Optional "Buy Now" badge overlay when `product.offerBadgeText === 'BEST SELLER'`
+ *      or `product.isBestSeller` is true.
+ *
+ *  Visual hierarchy:
+ *    - Price is the largest, brightest element on the card.
+ *    - Discount badge is red (high contrast).
+ *    - CTA buttons are always visible — never hover-only.
+ *    - Card has consistent height via flex column + min-heights on title/desc.
+ *
+ *  Accessibility:
+ *    - Whole card is keyboard-focusable (`tabIndex={0}`).
+ *    - Focus ring is a 3px red ring (CSS `*:focus-visible` rule).
+ *    - All icon buttons have `aria-label`s.
+ *    - Image has descriptive `alt` text.
+ *    - Variant chips are real buttons (not divs).
+ *    - Disabled state for out-of-stock has `aria-disabled`.
+ *
+ *  Single source of truth — same card is used by:
+ *    - Storefront catalog grid (TrendingSection)
+ *    - Search results
+ *    - Related-products rail inside ProductDetailModal
+ *    - Admin live-preview pane (planned)
+ * ============================================================================
  */
 export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = false }) => {
   const {
@@ -52,6 +86,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
     currentUser,
     setIsAuthModalOpen,
     addToast,
+    setIsCheckoutOpen,
   } = useStore();
 
   const isGuest = currentUser.id === 'guest';
@@ -61,40 +96,63 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
     product.variations && product.variations.length > 0 ? product.variations[0] : undefined
   );
 
+  // Derived price fields
   const currentPrice = selectedVariation ? selectedVariation.price : product.price;
   const hasDiscount = product.compareAtPrice > currentPrice;
   const discountPercent = hasDiscount
     ? Math.round(((product.compareAtPrice - currentPrice) / product.compareAtPrice) * 100)
     : 0;
+  const savingsAmount = hasDiscount ? product.compareAtPrice - currentPrice : 0;
 
   const isWishlisted = wishlist.includes(product.id);
   const isPhysical = product.productType === 'physical_projector';
   const inCart = isInCart(product.id, selectedVariation?.id);
+  const isBestSeller = Boolean(product.isBestSeller || product.offerBadgeText === 'BEST SELLER');
 
   // Variants — only show when there are 2+ distinct variants.
-  const visibleVariations = product.variations && product.variations.length > 1
-    ? product.variations.slice(0, 3)
-    : [];
+  const visibleVariations =
+    product.variations && product.variations.length > 1 ? product.variations.slice(0, 3) : [];
 
   // Stock state — three modes: out / low / healthy.
   const effectiveStock = selectedVariation ? selectedVariation.stock : product.stock;
   const stockState: 'out' | 'low' | 'healthy' =
     effectiveStock <= 0 ? 'out' : effectiveStock <= product.lowStockThreshold ? 'low' : 'healthy';
 
+  // Promo tag selection — explicit offerBadgeText wins, else derive from flags.
+  const promoTag: { text: string; color: 'red' | 'yellow' | 'green' | 'blue' | 'silver' | 'dark' } | null = (() => {
+    if (product.offerBadgeText) {
+      return { text: product.offerBadgeText, color: product.offerBadgeColor || 'red' };
+    }
+    if (product.isFlashDeal)   return { text: 'FLASH DEAL', color: 'red' };
+    if (product.isLimitedTime) return { text: 'LIMITED', color: 'yellow' };
+    if (isBestSeller)         return { text: 'BEST SELLER', color: 'yellow' };
+    if (product.isTrendingWeek) return { text: 'TRENDING', color: 'blue' };
+    if (product.isFeatured)   return { text: 'FEATURED', color: 'silver' };
+    return null;
+  })();
+
+  // ---- Handlers (all respect guest gating) ----
   const handleCardClick = () => {
     if (isGuest) {
       setIsAuthModalOpen(true);
-      addToast('info', 'Sign In Required', 'Please sign in or create an account to view product details.');
+      addToast('info', 'Sign In Required', 'Please sign in to view product details.');
       return;
     }
     setSelectedProduct(product);
+  };
+
+  const handleCardKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick();
+    }
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGuest) {
       setIsAuthModalOpen(true);
-      addToast('info', 'Sign In Required', 'Please sign in or create an account to view products.');
+      addToast('info', 'Sign In Required', 'Please sign in to view products.');
       return;
     }
     setSelectedProduct(product);
@@ -104,17 +162,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
     e.stopPropagation();
     if (isGuest) {
       setIsAuthModalOpen(true);
-      addToast('info', 'Sign In Required', 'Please sign in or create an account to add items to cart.');
+      addToast('info', 'Sign In Required', 'Please sign in to add items to cart.');
       return;
     }
+    if (stockState === 'out') return;
     addToCart(product, selectedVariation, 1);
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isGuest) {
+      setIsAuthModalOpen(true);
+      addToast('info', 'Sign In Required', 'Please sign in to checkout.');
+      return;
+    }
+    if (stockState === 'out') return;
+    addToCart(product, selectedVariation, 1);
+    setIsCheckoutOpen(true);
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGuest) {
       setIsAuthModalOpen(true);
-      addToast('info', 'Sign In Required', 'Please sign in or create an account to use wishlist.');
+      addToast('info', 'Sign In Required', 'Please sign in to use wishlist.');
       return;
     }
     toggleWishlist(product.id);
@@ -128,120 +199,128 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
   return (
     <article
       onClick={handleCardClick}
-      className="product-card-premium group flex flex-col h-full cursor-pointer relative"
-      aria-label={`View ${product.title}`}
+      onKeyDown={handleCardKey}
+      tabIndex={0}
+      role="button"
+      aria-label={`View ${product.title}. ${stockState === 'out' ? 'Currently out of stock.' : 'In stock.'}`}
+      className="pb-product-card group flex flex-col h-full cursor-pointer relative outline-none"
     >
-      {/* ===========================================================
-          IMAGE / BADGES / WISHLIST
-          =========================================================== */}
-      <div className="relative aspect-[4/3] bg-[#0A1020] overflow-hidden rounded-t-[15px] border-b border-[#26334A]/70">
-        <img
-          src={product.images[0]}
+      {/* =================================================================
+          IMAGE / BADGES / WISHLIST / QUICK VIEW
+          ================================================================= */}
+      <div className="relative aspect-[4/3] bg-[var(--pb-charcoal-2)] overflow-hidden rounded-t-[var(--pb-radius-lg)] border-b border-[var(--pb-line)]">
+        <ProductImage
+          src={product.images?.[0]}
           alt={product.title}
+          className="pb-pc-image w-full h-full object-cover"
           loading="lazy"
-          className="product-card-image w-full h-full object-cover"
         />
-        {/* Subtle gradient for legibility of badges */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0E1626] via-transparent to-transparent opacity-70 pointer-events-none" />
 
-        {/* Top-left badges: category / type / discount */}
-        <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[75%]">
-          <span className="px-2 py-0.5 rounded-md bg-black/55 text-white backdrop-blur-md font-mono text-[9px] font-bold tracking-wider uppercase border border-white/10">
-            {product.categoryName}
-          </span>
+        {/* Subtle gradient for badge legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--pb-ink)] via-transparent to-transparent opacity-60 pointer-events-none" />
 
-          {product.offerBadgeText ? (
-            <span
-              className={`px-2 py-0.5 rounded-md backdrop-blur-md font-mono text-[9px] font-bold tracking-wider uppercase border ${
-                product.offerBadgeColor === 'yellow'
-                  ? 'bg-[#FFC928]/90 text-slate-950 border-[#FFC928]'
-                  : product.offerBadgeColor === 'red'
-                  ? 'bg-[#FF304F]/90 text-white border-[#FF304F]'
-                  : product.offerBadgeColor === 'green'
-                  ? 'bg-[#00D99A]/90 text-slate-950 border-[#00D99A]'
-                  : 'bg-[#1769FF]/90 text-white border-[#1769FF]'
-              }`}
-            >
-              {product.offerBadgeText}
-            </span>
+        {/* Top-left: single most important badge only (no stacking) */}
+        <div className="absolute top-2.5 left-2.5 z-10">
+          {/* Priority: discount > promo tag > product-type badge */}
+          {hasDiscount ? (
+            <span className="pb-badge pb-badge-red">-{discountPercent}%</span>
+          ) : promoTag ? (
+            <span className={`pb-badge pb-badge-${promoTag.color}`}>{promoTag.text}</span>
           ) : isPhysical ? (
-            <span className="px-2 py-0.5 rounded-md bg-[#1769FF]/90 text-white backdrop-blur-md font-mono text-[9px] font-bold tracking-wider uppercase border border-[#1769FF]/80 flex items-center gap-1">
+            <span className="pb-badge pb-badge-blue">
               <Truck className="w-2.5 h-2.5" /> Tracked 4K
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-md bg-[#00D99A]/90 text-slate-950 backdrop-blur-md font-mono text-[9px] font-bold tracking-wider uppercase border border-[#00D99A]/80 flex items-center gap-1">
+            <span className="pb-badge pb-badge-green">
               <Zap className="w-2.5 h-2.5" /> Instant Key
-            </span>
-          )}
-
-          {hasDiscount && (
-            <span className="px-2 py-0.5 rounded-md bg-[#FF304F]/90 text-white backdrop-blur-md font-mono text-[9px] font-bold tracking-wider uppercase border border-[#FF304F]/80">
-              -{discountPercent}%
             </span>
           )}
         </div>
 
-        {/* Wishlist (top-right) */}
+        {/* Top-right: wishlist icon */}
         <button
           onClick={handleWishlist}
-          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          className={`absolute top-2.5 right-2.5 p-2 rounded-lg backdrop-blur-md border transition-all ${
+          aria-label={isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
+          aria-pressed={isWishlisted}
+          className={`absolute top-2.5 right-2.5 p-2 rounded-lg backdrop-blur-md border transition-all z-10 ${
             isWishlisted
-              ? 'bg-[#FF304F] text-white border-[#FF304F] shadow-md shadow-[#FF304F]/30'
-              : 'bg-black/55 text-slate-200 hover:text-white hover:bg-black/75 border-white/10'
+              ? 'bg-[var(--pb-red)] text-white border-[var(--pb-red-bright)] shadow-md shadow-[rgba(225,29,46,0.4)]'
+              : 'bg-black/60 text-silver-200 hover:text-white hover:bg-black/80 border-white/10'
           }`}
         >
           <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
 
-        {/* Quick View button (revealed on hover, always visible on touch) */}
+        {/* Bottom-left: secondary promo tag (when both discount and promo exist) */}
+        {hasDiscount && promoTag && (
+          <div className="absolute bottom-14 left-2.5 z-10">
+            <span className={`pb-badge pb-badge-${promoTag.color}`}>{promoTag.text}</span>
+          </div>
+        )}
+
+        {/* In-cart indicator */}
+        {inCart && (
+          <div
+            className="absolute top-12 right-2.5 px-1.5 py-0.5 rounded bg-[var(--pb-emerald)] text-white font-mono text-[9px] font-bold tracking-wider uppercase flex items-center gap-0.5 shadow z-10"
+            aria-label="This item is in your cart"
+          >
+            <Check className="w-2.5 h-2.5" /> In Cart
+          </div>
+        )}
+
+        {/* Out-of-stock overlay */}
+        {stockState === 'out' && (
+          <div className="absolute inset-0 bg-black/55 flex items-center justify-center z-10">
+            <span className="pb-badge pb-badge-red text-[10px] px-3 py-1.5">Out of Stock</span>
+          </div>
+        )}
+
+        {/* Quick View button (revealed on hover, always on touch) */}
         <button
           onClick={handleQuickView}
-          className="product-card-quickview absolute bottom-2.5 left-2.5 right-2.5 py-2 rounded-lg bg-black/70 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider font-mono border border-white/10 hover:bg-black/85 flex items-center justify-center gap-1.5"
-          aria-label="Quick view product"
+          className="pb-pc-quickview absolute bottom-2.5 left-2.5 right-2.5 py-2 rounded-lg bg-black/75 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider font-mono border border-white/10 hover:bg-black/90 hover:border-[var(--pb-red-line)] flex items-center justify-center gap-1.5 z-10"
+          aria-label={`Quick view ${product.title}`}
         >
           <Eye className="w-3 h-3" />
           <span>Quick View</span>
         </button>
-
-        {/* In-cart indicator (top-right, below wishlist) */}
-        {inCart && (
-          <div className="absolute top-12 right-2.5 px-1.5 py-0.5 rounded bg-emerald-500/90 text-slate-950 font-mono text-[9px] font-bold tracking-wider uppercase flex items-center gap-0.5 shadow">
-            <Check className="w-2.5 h-2.5" /> In Cart
-          </div>
-        )}
       </div>
 
-      {/* ===========================================================
+      {/* =================================================================
           CONTENT
-          =========================================================== */}
+          ================================================================= */}
       <div className="flex flex-col flex-1 p-3.5 gap-2">
-        {/* Rating row */}
+        {/* Rating + sold count row */}
         <div className="flex items-center justify-between text-[10px] font-mono">
-          <span className="text-slate-400 uppercase tracking-wider truncate">{product.categoryName}</span>
-          <div className="flex items-center gap-1 text-[#FFC928] shrink-0">
+          <div className="flex items-center gap-1 text-[var(--pb-gold)] shrink-0">
             <Star className="w-3 h-3 fill-current" />
-            <span className="font-bold text-slate-100">{product.rating}</span>
-            <span className="text-slate-500">({product.reviewCount})</span>
+            <span className="font-bold text-[var(--pb-white)]">{product.rating}</span>
+            <span className="text-[var(--pb-silver-3)]">({product.reviewCount})</span>
           </div>
+          <span className="text-[var(--pb-silver-4)] uppercase tracking-wider truncate ml-2">
+            {product.totalSold || 48}+ sold
+          </span>
         </div>
 
         {/* Title — controlled wrapping (max 2 lines) */}
-        <h3 className="product-card-title font-semibold text-white text-[13px] leading-snug line-clamp-2 min-h-[2.4em]">
+        <h3
+          className="pb-pc-title font-semibold text-[var(--pb-white)] text-[13px] leading-snug line-clamp-2 min-h-[2.4em]"
+          title={product.title}
+        >
           {product.title}
         </h3>
 
         {/* One-line description (hidden in compact mode) */}
-        {!compact && (
-          <p className="text-[11px] text-slate-400 line-clamp-1 min-h-[1.1em]">
+        {!compact && product.shortDescription && (
+          <p className="text-[11px] text-[var(--pb-silver-3)] line-clamp-1 min-h-[1.1em]">
             {product.shortDescription}
           </p>
         )}
 
         {/* Variant chips (when 2+ variants exist) */}
         {visibleVariations.length > 0 && (
-          <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
-            <div className="text-[9px] font-mono uppercase text-slate-500 tracking-wider">
+          <div className="space-y-1 mt-0.5" onClick={(e) => e.stopPropagation()}>
+            <div className="text-[9px] font-mono uppercase text-[var(--pb-silver-4)] tracking-wider">
               {product.variations![0].type}:
             </div>
             <div className="flex flex-wrap gap-1">
@@ -251,19 +330,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
                   <button
                     key={v.id}
                     onClick={(e) => handleVariationSelect(e, v)}
-                    className={`px-2 py-1 rounded-md text-[10px] font-mono transition-all border truncate max-w-[120px] ${
-                      selected
-                        ? 'bg-[#1769FF]/20 text-[#5a9eff] border-[#1769FF]/60 font-bold'
-                        : 'bg-[#0E1626] text-slate-400 border-[#26334A]/80 hover:text-slate-200 hover:border-[#1769FF]/30'
-                    }`}
+                    className={`pb-variant-chip ${selected ? 'is-selected' : ''}`}
                     title={`${v.value} — ${formatPrice(v.price)}`}
+                    aria-pressed={selected}
                   >
                     {v.value}
                   </button>
                 );
               })}
               {product.variations!.length > 3 && (
-                <span className="px-2 py-1 text-[10px] font-mono text-slate-500 self-center">
+                <span
+                  className="px-2 py-1 text-[10px] font-mono text-[var(--pb-silver-3)] self-center cursor-pointer hover:text-[var(--pb-white)]"
+                  onClick={handleQuickView}
+                  title="View all variants"
+                >
                   +{product.variations!.length - 3}
                 </span>
               )}
@@ -275,73 +355,94 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
         <div className="flex-1" />
 
         {/* Stock / availability indicator */}
-        <div className="flex items-center gap-1.5 text-[10px] font-mono">
+        <div className="flex items-center gap-2">
           {stockState === 'out' ? (
-            <span className="inline-flex items-center gap-1 text-[#FF304F]">
-              <AlertCircle className="w-3 h-3" /> Out of stock
+            <span className="pb-status pb-status-out-stock">
+              <AlertCircle className="w-2.5 h-2.5" /> Out of stock
             </span>
           ) : stockState === 'low' ? (
-            <span className="inline-flex items-center gap-1 text-[#FFC928]">
-              <AlertCircle className="w-3 h-3" /> Only {effectiveStock} left
+            <span className="pb-status pb-status-low-stock">
+              <AlertCircle className="w-2.5 h-2.5" /> Only {effectiveStock} left
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[#00D99A]">
-              <CheckCircle2 className="w-3 h-3" /> In stock
+            <span className="pb-status pb-status-in-stock">
+              <CheckCircle2 className="w-2.5 h-2.5" /> In stock
             </span>
           )}
-
-          <span className="text-slate-500">·</span>
-          <span className="text-slate-400">{product.totalSold || 48}+ sold</span>
         </div>
 
-        {/* Price row — perfectly aligned across cards */}
-        <div className="flex items-baseline gap-2 pt-1">
-          <span className="text-[17px] font-black text-white font-mono leading-none">
-            {formatPrice(currentPrice)}
-          </span>
-          {hasDiscount && (
-            <span className="text-[11px] text-slate-500 line-through font-mono leading-none">
-              {formatPrice(product.compareAtPrice)}
-            </span>
+        {/* Price + savings block */}
+        <div className="flex flex-col gap-0.5 pt-1">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="pb-price-current">{formatPrice(currentPrice)}</span>
+            {hasDiscount && (
+              <>
+                <span className="pb-price-original">{formatPrice(product.compareAtPrice)}</span>
+                <span className="pb-badge pb-badge-red">-{discountPercent}%</span>
+              </>
+            )}
+          </div>
+          {hasDiscount && savingsAmount > 0 && (
+            <div className="pb-price-savings flex items-center gap-1">
+              <Tag className="w-2.5 h-2.5" />
+              <span>Save {formatPrice(savingsAmount)}</span>
+            </div>
           )}
         </div>
 
         {/* Trust indicator row */}
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+        <div className="flex items-center gap-1.5 text-[10px] text-[var(--pb-silver-3)]">
           {isPhysical ? (
             <>
-              <Truck className="w-3 h-3 text-[#1769FF]" />
+              <Truck className="w-3 h-3 text-[var(--pb-silver-2)]" />
               <span>Free insured shipping</span>
             </>
           ) : (
             <>
-              <Zap className="w-3 h-3 text-[#00D99A]" />
+              <Zap className="w-3 h-3 text-[var(--pb-emerald)]" />
               <span>Instant key delivery</span>
             </>
           )}
-          <span className="text-slate-600">·</span>
-          <ShieldCheck className="w-3 h-3 text-emerald-500" />
+          <span className="text-[var(--pb-silver-4)]">·</span>
+          <ShieldCheck className="w-3 h-3 text-[var(--pb-emerald)]" />
           <span>Verified</span>
         </div>
 
-        {/* Buttons — consistent across all cards */}
-        <div className="grid grid-cols-[1fr_auto] gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+        {/* Action buttons — always visible */}
+        <div
+          className="grid grid-cols-[1fr_auto] gap-2 pt-2"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={handleAddToCart}
             disabled={stockState === 'out'}
-            className="btn-glossy btn-glossy-emerald btn-glossy-sm w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={`Add ${product.title} to cart`}
+            className="pb-btn pb-btn-primary pb-btn-sm pb-btn-block"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
             <span>{inCart ? 'Add More' : 'Add to Cart'}</span>
           </button>
           <button
             onClick={handleQuickView}
-            aria-label="Quick view"
-            className="btn-glossy btn-glossy-cyan btn-glossy-sm flex items-center justify-center"
+            aria-label={`Quick view ${product.title}`}
+            className="pb-btn pb-btn-secondary pb-btn-sm flex items-center justify-center"
           >
-            <ArrowRight className="w-3.5 h-3.5" />
+            <Eye className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Buy Now — only on best sellers / flash deals for premium emphasis */}
+        {(isBestSeller || product.isFlashDeal) && stockState !== 'out' && (
+          <button
+            onClick={handleBuyNow}
+            aria-label={`Buy ${product.title} now`}
+            className="pb-btn pb-btn-dark pb-btn-sm pb-btn-block mt-1.5 border-[var(--pb-red-line)]"
+            style={{ color: 'var(--pb-red-bright)' }}
+          >
+            <Zap className="w-3 h-3" />
+            <span>Buy Now</span>
+          </button>
+        )}
       </div>
     </article>
   );
@@ -350,22 +451,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
 /**
  * Skeleton placeholder used while products are loading.
  * Keeps the grid layout stable — no jumpy reflows.
+ * Uses the new `.pb-skeleton` shimmer.
  */
 export const ProductCardSkeleton: React.FC = () => {
   return (
-    <div className="skeleton-card flex flex-col h-full">
-      <div className="aspect-[4/3] skeleton" />
+    <div className="pb-skeleton-card flex flex-col h-full">
+      <div className="aspect-[4/3] pb-skeleton" />
       <div className="p-3.5 flex flex-col gap-2 flex-1">
         <div className="flex justify-between">
-          <div className="h-3 w-16 skeleton rounded" />
-          <div className="h-3 w-12 skeleton rounded" />
+          <div className="h-3 w-16 pb-skeleton" />
+          <div className="h-3 w-12 pb-skeleton" />
         </div>
-        <div className="h-4 w-full skeleton rounded" />
-        <div className="h-3 w-2/3 skeleton rounded" />
+        <div className="h-4 w-full pb-skeleton" />
+        <div className="h-3 w-2/3 pb-skeleton" />
         <div className="flex-1" />
-        <div className="h-3 w-20 skeleton rounded" />
-        <div className="h-5 w-24 skeleton rounded" />
-        <div className="h-8 w-full skeleton rounded-lg" />
+        <div className="h-3 w-20 pb-skeleton" />
+        <div className="h-5 w-24 pb-skeleton" />
+        <div className="h-8 w-full pb-skeleton" />
       </div>
     </div>
   );

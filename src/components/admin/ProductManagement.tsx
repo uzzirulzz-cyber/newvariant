@@ -20,6 +20,7 @@ import {
   RotateCcw,
   LogOut,
   Loader2,
+  Package,
 } from 'lucide-react';
 
 export const ProductManagement: React.FC = () => {
@@ -312,12 +313,16 @@ export const ProductManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-fade-up">
       {/* Top Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl bg-[#121212] border border-white/10 shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl pb-panel shadow-lg">
         <div>
-          <h2 className="text-xl font-bold text-white font-display">Product Catalog & SKUs</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <span className="pb-eyebrow">
+            <Package className="w-3 h-3" />
+            Catalog Management
+          </span>
+          <h2 className="text-xl font-bold text-white font-display mt-1">Product Catalog & SKUs</h2>
+          <p className="text-xs text-[var(--pb-silver-3)] mt-0.5">
             Manage instant digital keys, subscriptions, and 4K physical projector inventories.
           </p>
         </div>
@@ -334,7 +339,7 @@ export const ProductManagement: React.FC = () => {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={csvUploading}
-            className="btn-glossy btn-glossy-emerald btn-glossy-sm"
+            className="pb-btn pb-btn-success pb-btn-sm"
           >
             {csvUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
             <span>CSV Import</span>
@@ -346,7 +351,7 @@ export const ProductManagement: React.FC = () => {
               setEditingProduct(null);
               setIsEditorOpen(true);
             }}
-            className="btn-glossy btn-glossy-yellow btn-glossy-sm"
+            className="pb-btn pb-btn-primary pb-btn-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Product</span>
@@ -356,7 +361,7 @@ export const ProductManagement: React.FC = () => {
           <button
             onClick={handleMigrateVariations}
             disabled={isMigratingVars}
-            className="btn-glossy btn-glossy-blue btn-glossy-sm"
+            className="pb-btn pb-btn-secondary pb-btn-sm"
             title="Generate category-aware variations (durations, editions, sessions) for products that currently have only the CSV-import default variation."
           >
             {isMigratingVars ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
@@ -367,7 +372,8 @@ export const ProductManagement: React.FC = () => {
           <button
             onClick={handleResetDb}
             disabled={isResetting}
-            className="btn-glossy btn-glossy-red btn-glossy-sm"
+            className="pb-btn pb-btn-dark pb-btn-sm"
+            title="Wipe and re-seed the database (destructive!)"
           >
             {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
             <span>Reset DB</span>
@@ -377,7 +383,8 @@ export const ProductManagement: React.FC = () => {
           <button
             onClick={handleLogoutEverywhere}
             disabled={isLoggingOut}
-            className="btn-glossy btn-glossy-dark btn-glossy-sm"
+            className="pb-btn pb-btn-ghost pb-btn-sm"
+            title="Log out super admin from all sessions and devices"
           >
             {isLoggingOut ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
             <span>Logout All</span>
@@ -386,113 +393,154 @@ export const ProductManagement: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl bg-[#121212] border border-white/5">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl pb-panel">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-[var(--pb-silver-4)] absolute left-3 top-3" />
           <input
             type="text"
             placeholder="Search by title, SKU, or category..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#161616] rounded border border-white/10 pl-9 pr-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500/50"
+            className="pb-input pl-9"
           />
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono">
+        <div className="pb-tabs">
           <button
             onClick={() => setTypeFilter('all')}
-            className={`px-3 py-1.5 rounded transition-colors ${typeFilter === 'all' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-zinc-400'}`}
+            className={`pb-tab ${typeFilter === 'all' ? 'is-active' : ''}`}
           >
             All ({products.length})
           </button>
           <button
             onClick={() => setTypeFilter('digital')}
-            className={`px-3 py-1.5 rounded transition-colors flex items-center gap-1 ${typeFilter === 'digital' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-zinc-400'}`}
+            className={`pb-tab ${typeFilter === 'digital' ? 'is-active' : ''}`}
           >
-            <Zap className="w-3 h-3 text-emerald-400" /> Digital
+            <Zap className="w-3 h-3" /> Digital
           </button>
           <button
             onClick={() => setTypeFilter('physical_projector')}
-            className={`px-3 py-1.5 rounded transition-colors flex items-center gap-1 ${typeFilter === 'physical_projector' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-zinc-400'}`}
+            className={`pb-tab ${typeFilter === 'physical_projector' ? 'is-active' : ''}`}
           >
-            <Truck className="w-3 h-3 text-red-500" /> 4K Projectors
+            <Truck className="w-3 h-3" /> 4K Projectors
           </button>
         </div>
       </div>
 
       {/* Products Table */}
-      <div className="rounded-xl bg-[#121212] border border-white/5 overflow-hidden shadow-lg">
+      <div className="rounded-xl pb-panel overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[750px]">
+          <table className="pb-table min-w-[900px]">
             <thead>
-              <tr className="border-b border-white/5 bg-[#161616] font-mono text-zinc-400 uppercase text-[11px] tracking-wider">
-                <th className="p-4">Product Details</th>
-                <th className="p-4">SKU / Type</th>
-                <th className="p-4">Price</th>
-                <th className="p-4">Stock</th>
-                <th className="p-4">Variations</th>
-                <th className="p-4 text-right">Actions</th>
+              <tr>
+                <th>Product Details</th>
+                <th>SKU / Type</th>
+                <th>Status</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Variations</th>
+                <th>Flags</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {filteredProducts.map((p) => {
                 const isPhysical = p.productType === 'physical_projector';
+                const stockLow = p.stock <= p.lowStockThreshold;
+                const stockOut = p.stock <= 0;
+                const statusClass =
+                  p.status === 'published' ? 'pb-status-published'
+                  : p.status === 'draft' ? 'pb-status-draft'
+                  : p.status === 'archived' ? 'pb-status-archived'
+                  : 'pb-status-draft';
+                const flags: string[] = [];
+                if (p.isFeatured) flags.push('★');
+                if (p.isTrending) flags.push('↑');
+                if (p.isBestSeller) flags.push('BS');
+                if (p.isFlashDeal) flags.push('⚡');
+                if (p.isLimitedTime) flags.push('⏰');
+
                 return (
-                  <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="p-4">
+                  <tr key={p.id}>
+                    <td>
                       <div className="flex items-center gap-3">
-                        <img src={p.images[0]} alt={p.title} className="w-10 h-10 rounded object-cover bg-zinc-900 shrink-0" />
+                        <img
+                          src={p.images?.[0] || ''}
+                          alt={p.title}
+                          loading="lazy"
+                          className="w-10 h-10 rounded object-cover bg-[var(--pb-charcoal-2)] shrink-0 border border-[var(--pb-line)]"
+                        />
                         <div className="min-w-0">
                           <div className="font-bold text-white truncate max-w-xs">{p.title}</div>
-                          <div className="text-[11px] text-zinc-500">{p.categoryName}</div>
+                          <div className="text-[11px] text-[var(--pb-silver-3)]">{p.categoryName}</div>
                         </div>
                       </div>
                     </td>
 
-                    <td className="p-4 font-mono">
+                    <td className="font-mono">
                       <div className="text-white font-bold">{p.sku}</div>
                       <div className="mt-0.5">
                         {isPhysical ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-red-500 bg-red-600/10 px-1.5 py-0.5 rounded border border-red-500/20">
-                            <Truck className="w-2.5 h-2.5" /> 4K Projector
+                          <span className="pb-badge pb-badge-blue">
+                            <Truck className="w-2.5 h-2.5" /> 4K
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            <Zap className="w-2.5 h-2.5" /> Digital Key
+                          <span className="pb-badge pb-badge-green">
+                            <Zap className="w-2.5 h-2.5" /> Digital
                           </span>
                         )}
                       </div>
                     </td>
 
-                    <td className="p-4 font-mono">
-                      <div className="font-bold text-white">{formatPrice(p.price)}</div>
+                    <td>
+                      <span className={`pb-status ${statusClass}`}>{p.status}</span>
+                    </td>
+
+                    <td className="font-mono">
+                      <div className="pb-price-current !text-sm">{formatPrice(p.price)}</div>
                       {p.compareAtPrice > p.price && (
-                        <div className="text-[10px] text-zinc-500 line-through">{formatPrice(p.compareAtPrice)}</div>
+                        <div className="pb-price-original">{formatPrice(p.compareAtPrice)}</div>
                       )}
                     </td>
 
-                    <td className="p-4 font-mono">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        p.stock <= p.lowStockThreshold ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'
-                      }`}>
+                    <td className="font-mono">
+                      <span className={`pb-status ${stockOut ? 'pb-status-out-stock' : stockLow ? 'pb-status-low-stock' : 'pb-status-in-stock'}`}>
                         {p.stock} units
                       </span>
                     </td>
 
-                    <td className="p-4 font-mono text-zinc-300">
+                    <td className="font-mono text-[var(--pb-silver-2)]">
                       {p.variations && p.variations.length > 0 ? (
-                        <span className="text-xs font-semibold">{p.variations.length} Options</span>
+                        <span className="text-xs font-semibold text-white">{p.variations.length} opts</span>
                       ) : (
-                        <span className="text-zinc-500">Single SKU</span>
+                        <span className="text-[var(--pb-silver-4)]">Single SKU</span>
                       )}
                     </td>
 
-                    <td className="p-4 text-right">
+                    <td>
+                      <div className="flex flex-wrap gap-1 max-w-[120px]">
+                        {flags.length === 0 ? (
+                          <span className="text-[var(--pb-silver-4)] text-[10px]">—</span>
+                        ) : (
+                          flags.map((f, i) => (
+                            <span
+                              key={i}
+                              className="pb-badge pb-badge-dark"
+                              title={f === '★' ? 'Featured' : f === '↑' ? 'Trending' : f === 'BS' ? 'Best Seller' : f === '⚡' ? 'Flash Deal' : 'Limited Time'}
+                            >
+                              {f}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setSelectedProduct(p)}
-                          className="p-2 rounded bg-white/5 hover:bg-blue-500/15 text-zinc-300 hover:text-blue-400 transition-colors"
-                          title="Preview Product (as customers will see it)"
+                          className="p-2 rounded text-[var(--pb-silver-3)] hover:text-[var(--pb-red-bright)] hover:bg-[var(--pb-red-soft)] transition-colors"
+                          title="Preview (as customers will see it)"
                           aria-label={`Preview ${p.title}`}
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -503,7 +551,7 @@ export const ProductManagement: React.FC = () => {
                             setEditingProduct(p);
                             setIsEditorOpen(true);
                           }}
-                          className="p-2 rounded bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
+                          className="p-2 rounded text-[var(--pb-silver-3)] hover:text-white hover:bg-white/10 transition-colors"
                           title="Edit Product"
                           aria-label={`Edit ${p.title}`}
                         >
@@ -512,7 +560,7 @@ export const ProductManagement: React.FC = () => {
 
                         <button
                           onClick={() => handleDelete(p.id, p.title)}
-                          className="p-2 rounded bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors"
+                          className="p-2 rounded text-[var(--pb-silver-3)] hover:text-[#FF2E42] hover:bg-[var(--pb-red-soft)] transition-colors"
                           title="Delete Product"
                           aria-label={`Delete ${p.title}`}
                         >

@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   Video,
   Link as LinkIcon,
+  ShoppingCart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -121,7 +122,73 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({ product,
   const [storage, setStorage] = useState(product?.projectorSpecs?.storage || '64GB');
   const [speakerSpecs, setSpeakerSpecs] = useState(product?.projectorSpecs?.speakerSpecs || '30W Harman Kardon Dolby Atmos');
 
+  // ---- New: visibility / promotional flags / badge controls ----
+  const [status, setStatus] = useState<Product['status']>(product?.status || 'published');
+  const [isFeatured, setIsFeatured] = useState(product?.isFeatured ?? false);
+  const [isTrending, setIsTrending] = useState(product?.isTrending ?? false);
+  const [isTrendingWeek, setIsTrendingWeek] = useState(product?.isTrendingWeek ?? false);
+  const [isBestSeller, setIsBestSeller] = useState(product?.isBestSeller ?? false);
+  const [isFlashDeal, setIsFlashDeal] = useState(product?.isFlashDeal ?? false);
+  const [isLimitedTime, setIsLimitedTime] = useState(product?.isLimitedTime ?? false);
+  const [offerBadgeText, setOfferBadgeText] = useState(product?.offerBadgeText || '');
+  const [offerBadgeColor, setOfferBadgeColor] = useState<Product['offerBadgeColor']>(product?.offerBadgeColor || 'red');
+  const [tags, setTags] = useState<string[]>(product?.tags || []);
+  const [tagInput, setTagInput] = useState('');
+  const [showLivePreview, setShowLivePreview] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleAddTag = () => {
+    const t = tagInput.trim().toLowerCase();
+    if (!t) return;
+    if (tags.includes(t)) {
+      setTagInput('');
+      return;
+    }
+    setTags([...tags, t]);
+    setTagInput('');
+  };
+
+  const handleRemoveTag = (t: string) => {
+    setTags(tags.filter((x) => x !== t));
+  };
+
+  // Build a "preview product" object that mirrors what the storefront will render
+  const previewProduct: Product = {
+    id: product?.id || 'preview',
+    title: title || 'Product Title',
+    slug: (title || 'product-title').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    shortDescription: shortDescription || 'Short description preview…',
+    description: description || '',
+    categoryId,
+    categoryName: categories.find((c) => c.id === categoryId)?.name || 'Digital',
+    productType,
+    price: Number(price) || 0,
+    compareAtPrice: Number(compareAtPrice) || 0,
+    costPrice: undefined,
+    discountPercent: compareAtPrice > price ? Math.round(((Number(compareAtPrice) - Number(price)) / Number(compareAtPrice)) * 100) : 0,
+    images: images.length > 0 ? images : ['https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg'],
+    videoUrl: videoUrl || undefined,
+    variations,
+    tags,
+    isFeatured,
+    isTrending,
+    isTrendingWeek,
+    isBestSeller,
+    isFlashDeal,
+    isLimitedTime,
+    offerBadgeText: offerBadgeText || undefined,
+    offerBadgeColor,
+    status,
+    rating: product?.rating || 4.9,
+    reviewCount: product?.reviewCount || 18,
+    reviews: product?.reviews || [],
+    stock: Number(stock) || 0,
+    lowStockThreshold: 5,
+    sku,
+    createdAt: product?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 
   const handleAddVariation = () => {
     const newV: ProductVariation = {
@@ -208,14 +275,20 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({ product,
       description,
       images: images.length > 0 ? images : ['https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg'],
       videoUrl: videoUrl || undefined,
-      status: 'published',
+      status,
       stock: Number(stock),
       lowStockThreshold: 5,
       rating: product?.rating || 4.9,
       reviewCount: product?.reviewCount || 18,
-      isFeatured: true,
-      isTrending: true,
-      tags: ['digital', categoryId, productType],
+      isFeatured,
+      isTrending,
+      isTrendingWeek,
+      isBestSeller,
+      isFlashDeal,
+      isLimitedTime,
+      offerBadgeText: offerBadgeText || undefined,
+      offerBadgeColor: offerBadgeText ? offerBadgeColor : undefined,
+      tags,
       variations: variations,
       projectorSpecs: productType === 'physical_projector' ? {
         model: sku,
@@ -513,6 +586,181 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({ product,
               </div>
             </div>
 
+            {/* 3.5. Visibility, Promotional Flags & Badges */}
+            <div className="p-4 rounded-2xl pb-panel space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white font-display flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--pb-red-bright)]" />
+                  Visibility, Promotional Flags & Badges
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowLivePreview((v) => !v)}
+                  className="pb-btn pb-btn-secondary pb-btn-sm"
+                  aria-pressed={showLivePreview}
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>{showLivePreview ? 'Hide' : 'Show'} Live Preview</span>
+                </button>
+              </div>
+
+              {/* Status (visibility) */}
+              <div>
+                <label className="pb-label">Product Status / Visibility</label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'published', label: 'Published (visible on storefront)', color: 'pb-status-published' },
+                    { value: 'draft', label: 'Draft (hidden, in-progress)', color: 'pb-status-draft' },
+                    { value: 'archived', label: 'Archived (hidden, retired)', color: 'pb-status-archived' },
+                    { value: 'pending_approval', label: 'Pending Approval', color: 'pb-status-draft' },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setStatus(opt.value)}
+                      className={`pb-variant-chip ${status === opt.value ? 'is-selected' : ''}`}
+                      aria-pressed={status === opt.value}
+                    >
+                      <span className={`pb-status ${opt.color} mr-1`}>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Promotional flags — toggle switches */}
+              <div>
+                <label className="pb-label">Promotional Flags</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    { label: 'Featured', state: isFeatured, setter: setIsFeatured, hint: 'Show in Featured sections' },
+                    { label: 'Trending', state: isTrending, setter: setIsTrending, hint: 'Show in Trending sections' },
+                    { label: 'Trending This Week', state: isTrendingWeek, setter: setIsTrendingWeek, hint: 'Highlight as weekly pick' },
+                    { label: 'Best Seller', state: isBestSeller, setter: setIsBestSeller, hint: 'Show "BEST SELLER" badge' },
+                    { label: 'Flash Deal', state: isFlashDeal, setter: setIsFlashDeal, hint: 'Show in Flash Deals + "Buy Now" CTA' },
+                    { label: 'Limited Time', state: isLimitedTime, setter: setIsLimitedTime, hint: 'Show "LIMITED" badge' },
+                  ].map((flag) => (
+                    <label
+                      key={flag.label}
+                      className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-[var(--pb-ink)] border border-[var(--pb-line)] cursor-pointer hover:border-[var(--pb-red-line)]"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-white">{flag.label}</div>
+                        <div className="text-[10px] text-[var(--pb-silver-3)] truncate">{flag.hint}</div>
+                      </div>
+                      <div className="pb-toggle">
+                        <input
+                          type="checkbox"
+                          checked={flag.state}
+                          onChange={(e) => flag.setter(e.target.checked)}
+                          aria-label={flag.label}
+                        />
+                        <div className="pb-toggle-track">
+                          <div className="pb-toggle-thumb" />
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom badge (overrides derived badge) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="pb-label">Custom Badge Text (optional)</label>
+                  <input
+                    type="text"
+                    value={offerBadgeText}
+                    onChange={(e) => setOfferBadgeText(e.target.value)}
+                    placeholder="e.g. NEW, SALE, POPULAR, BEST SELLER, LIMITED"
+                    maxLength={32}
+                    className="pb-input"
+                  />
+                  <p className="text-[10px] text-[var(--pb-silver-4)] mt-1">
+                    Overrides the auto-derived badge. Leave blank to derive from flags.
+                  </p>
+                </div>
+                <div>
+                  <label className="pb-label">Badge Color</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { value: 'red', label: 'Red' },
+                      { value: 'yellow', label: 'Yellow' },
+                      { value: 'green', label: 'Green' },
+                      { value: 'blue', label: 'Blue' },
+                    ] as const).map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setOfferBadgeColor(c.value)}
+                        className={`pb-variant-chip ${offerBadgeColor === c.value ? 'is-selected' : ''}`}
+                        aria-pressed={offerBadgeColor === c.value}
+                      >
+                        <span className={`pb-badge pb-badge-${c.value} mr-1`}>{c.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="pb-label">Product Tags</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    placeholder="Type a tag and press Enter"
+                    className="pb-input flex-1"
+                  />
+                  <button type="button" onClick={handleAddTag} className="pb-btn pb-btn-secondary pb-btn-sm">
+                    <Plus className="w-3 h-3" />
+                    <span>Add</span>
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.length === 0 ? (
+                    <span className="text-[11px] text-[var(--pb-silver-4)]">No tags yet.</span>
+                  ) : (
+                    tags.map((t) => (
+                      <span
+                        key={t}
+                        className="pb-variant-chip is-selected flex items-center gap-1"
+                      >
+                        <span>{t}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(t)}
+                          className="hover:text-white"
+                          aria-label={`Remove tag ${t}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Live preview pane */}
+              {showLivePreview && (
+                <div className="p-4 rounded-xl bg-[var(--pb-ink)] border border-[var(--pb-line)]">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--pb-silver-3)] mb-3">
+                    Storefront Live Preview
+                  </div>
+                  <div className="max-w-[280px] mx-auto">
+                    <LivePreviewCard product={previewProduct} />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* 4. Variations with Duplicate Protection */}
             <div className={`p-4 rounded-2xl bg-[#141622] border space-y-3 ${
               hasDuplicateVariants ? 'border-red-500/40 bg-red-500/[0.03]' : 'border-white/5'
@@ -710,5 +958,115 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({ product,
         </motion.div>
       </div>
     </AnimatePresence>
+  );
+};
+
+/**
+ * Lightweight inline live-preview card.
+ * Reuses the storefront's premium ProductCard styling tokens without
+ * mounting the full interactive ProductCard (which would require the
+ * auth + cart store). Shows a static snapshot of how the card will
+ * appear on the storefront: image, badges, title, price, status.
+ */
+const LivePreviewCard: React.FC<{ product: Product }> = ({ product }) => {
+  const hasDiscount = product.compareAtPrice > product.price;
+  const discountPercent = hasDiscount
+    ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
+    : 0;
+  const isPhysical = product.productType === 'physical_projector';
+  const stockState: 'out' | 'low' | 'healthy' =
+    product.stock <= 0 ? 'out' : product.stock <= product.lowStockThreshold ? 'low' : 'healthy';
+
+  const promoTag: { text: string; color: 'red' | 'yellow' | 'green' | 'blue' | 'silver' } | null = (() => {
+    if (product.offerBadgeText) return { text: product.offerBadgeText, color: product.offerBadgeColor || 'red' };
+    if (product.isFlashDeal) return { text: 'FLASH DEAL', color: 'red' };
+    if (product.isLimitedTime) return { text: 'LIMITED', color: 'yellow' };
+    if (product.isBestSeller) return { text: 'BEST SELLER', color: 'yellow' };
+    if (product.isTrendingWeek) return { text: 'TRENDING', color: 'blue' };
+    if (product.isFeatured) return { text: 'FEATURED', color: 'silver' };
+    return null;
+  })();
+
+  return (
+    <article className="pb-product-card flex flex-col h-full" aria-label="Live preview">
+      <div className="relative aspect-[4/3] bg-[var(--pb-charcoal-2)] overflow-hidden rounded-t-[var(--pb-radius-lg)] border-b border-[var(--pb-line)]">
+        {product.images?.[0] ? (
+          <img
+            src={product.images[0]}
+            alt={product.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="pb-image-fallback w-full h-full" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--pb-ink)] via-transparent to-transparent opacity-60 pointer-events-none" />
+        <div className="absolute top-2.5 left-2.5 z-10">
+          {hasDiscount ? (
+            <span className="pb-badge pb-badge-red">-{discountPercent}%</span>
+          ) : promoTag ? (
+            <span className={`pb-badge pb-badge-${promoTag.color}`}>{promoTag.text}</span>
+          ) : isPhysical ? (
+            <span className="pb-badge pb-badge-blue">4K</span>
+          ) : (
+            <span className="pb-badge pb-badge-green">Instant</span>
+          )}
+        </div>
+        {stockState === 'out' && (
+          <div className="absolute inset-0 bg-black/55 flex items-center justify-center z-10">
+            <span className="pb-badge pb-badge-red">Out of Stock</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col flex-1 p-3.5 gap-2">
+        <div className="flex items-center justify-between text-[10px] font-mono">
+          <span className="text-[var(--pb-gold)] flex items-center gap-1">
+            ★ <span className="text-white font-bold">{product.rating}</span>
+            <span className="text-[var(--pb-silver-3)]">({product.reviewCount})</span>
+          </span>
+          <span className="text-[var(--pb-silver-4)] uppercase">{product.categoryName}</span>
+        </div>
+
+        <h3 className="font-semibold text-white text-[13px] leading-snug line-clamp-2 min-h-[2.4em]">
+          {product.title}
+        </h3>
+
+        <p className="text-[11px] text-[var(--pb-silver-3)] line-clamp-1 min-h-[1.1em]">
+          {product.shortDescription}
+        </p>
+
+        <div className="flex-1" />
+
+        <span className={`pb-status ${
+          stockState === 'out' ? 'pb-status-out-stock'
+          : stockState === 'low' ? 'pb-status-low-stock'
+          : 'pb-status-in-stock'
+        }`}>
+          {stockState === 'out' ? 'Out of stock'
+            : stockState === 'low' ? `Only ${product.stock} left`
+            : 'In stock'}
+        </span>
+
+        <div className="flex items-baseline gap-2 flex-wrap pt-1">
+          <span className="pb-price-current">${product.price.toFixed(2)}</span>
+          {hasDiscount && (
+            <>
+              <span className="pb-price-original">${product.compareAtPrice.toFixed(2)}</span>
+              <span className="pb-badge pb-badge-red">-{discountPercent}%</span>
+            </>
+          )}
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto] gap-2 pt-2">
+          <div className="pb-btn pb-btn-primary pb-btn-sm pb-btn-block">
+            <ShoppingCart className="w-3.5 h-3.5" />
+            <span>Add to Cart</span>
+          </div>
+          <div className="pb-btn pb-btn-secondary pb-btn-sm">
+            <Eye className="w-3.5 h-3.5" />
+          </div>
+        </div>
+      </div>
+    </article>
   );
 };

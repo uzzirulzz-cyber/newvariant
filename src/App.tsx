@@ -86,7 +86,7 @@ const AppContent: React.FC = () => {
   }, [activeView]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-zinc-200 selection:bg-red-600 selection:text-white font-sans antialiased">
+    <div className="min-h-screen pb-bg-premium text-[var(--pb-silver)] selection:bg-[var(--pb-red)] selection:text-white font-sans antialiased">
       {/* Dynamic Global Toast Notifications */}
       <NotificationToast />
 

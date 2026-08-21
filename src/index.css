@@ -935,3 +935,1020 @@
   padding: 0;
   border-radius: 9999px;
 }
+
+/* ============================================================================
+   PLAYBEAT PREMIUM DESIGN SYSTEM v2 (2026-08)
+   "Black / Charcoal / White / Silver / Subtle Red Accent"
+   ----------------------------------------------------------------------------
+   - Additive: does NOT replace or break any existing token / class.
+   - All new classes prefixed with `.pb-` (PlayBeat premium) to avoid collisions.
+   - Existing components keep working unchanged.
+   - Goal: production-grade contrast, accessibility, touch-friendly targets,
+     and a unified aesthetic shared between storefront and admin.
+   ============================================================================ */
+
+@layer base {
+  :root {
+    /* ---------- Premium palette (PlayBeat v2) ---------- */
+    --pb-black:        #000000;
+    --pb-ink:          #050505;  /* page background — true near-black */
+    --pb-charcoal:     #0E0E10;  /* primary card / surface */
+    --pb-charcoal-2:  #16161A;  /* elevated surface (hover / active) */
+    --pb-charcoal-3:  #1E1E22;  /* tertiary surface (input, chip) */
+    --pb-line:         #2A2A2F;  /* default border */
+    --pb-line-soft:   rgba(255, 255, 255, 0.06);
+    --pb-silver:       #E5E7EB;  /* primary text on dark — soft silver-white */
+    --pb-silver-2:     #B8BABF;  /* secondary text */
+    --pb-silver-3:     #8A8C92;  /* tertiary text / labels */
+    --pb-silver-4:     #5E6066;  /* muted / placeholder */
+    --pb-white:        #FFFFFF;
+    --pb-red:          #E11D2E;  /* subtle red accent — primary CTA */
+    --pb-red-bright:   #FF2E42;  /* hover / live indicator */
+    --pb-red-soft:     rgba(225, 29, 46, 0.12);
+    --pb-red-line:     rgba(225, 29, 46, 0.35);
+    --pb-gold:         #FFC928;  /* ratings — kept from v1 for warmth */
+    --pb-emerald:      #10B981;  /* in-stock — kept for status semantics */
+    --pb-amber:        #F59E0B;  /* low-stock — kept for status semantics */
+
+    /* ---------- Spacing & radii ---------- */
+    --pb-radius-sm:    8px;
+    --pb-radius:       12px;
+    --pb-radius-lg:    16px;
+    --pb-radius-xl:    20px;
+    --pb-space-1:      0.25rem;
+    --pb-space-2:      0.5rem;
+    --pb-space-3:      0.75rem;
+    --pb-space-4:      1rem;
+    --pb-space-5:      1.5rem;
+    --pb-space-6:      2rem;
+    --pb-space-8:      3rem;
+
+    /* ---------- Shadows ---------- */
+    --pb-shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.02);
+    --pb-shadow:      0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --pb-shadow-lg:   0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+    --pb-shadow-red:  0 8px 24px -6px rgba(225, 29, 46, 0.35), 0 0 0 1px rgba(225, 29, 46, 0.12);
+    --pb-ring-focus:  0 0 0 3px rgba(225, 29, 46, 0.4);
+  }
+}
+
+/* ============================================================================
+   PREMIUM SURFACES
+   ============================================================================ */
+
+/* Page background — true near-black with very subtle red glow */
+.pb-bg-premium {
+  background-color: var(--pb-ink);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(225, 29, 46, 0.04) 0px, transparent 45%),
+    radial-gradient(at 100% 100%, rgba(255, 255, 255, 0.015) 0px, transparent 50%);
+  min-height: 100vh;
+}
+
+/* Primary premium card — black/charcoal with silver border */
+.pb-card {
+  background: linear-gradient(180deg, var(--pb-charcoal) 0%, var(--pb-ink) 100%);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-lg);
+  box-shadow: var(--pb-shadow);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pb-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: var(--pb-shadow-lg);
+}
+
+/* Subtle elevated panel (admin sidebars, secondary cards) */
+.pb-panel {
+  background: var(--pb-charcoal);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius);
+  box-shadow: var(--pb-shadow-sm);
+}
+
+/* Inset / input surface */
+.pb-inset {
+  background: var(--pb-charcoal-3);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-sm);
+  color: var(--pb-silver);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.pb-inset:focus,
+.pb-inset:focus-visible {
+  outline: none;
+  border-color: var(--pb-red);
+  box-shadow: var(--pb-ring-focus);
+  background: var(--pb-charcoal-2);
+}
+
+.pb-inset::placeholder {
+  color: var(--pb-silver-4);
+}
+
+/* ============================================================================
+   PREMIUM PRODUCT CARD (v2 — replaces .product-card-premium visually)
+   ----------------------------------------------------------------------------
+   Shared by storefront catalog, search results, related rails, and admin
+   live-preview pane. Designed for:
+   - 4-5 columns desktop, 2-3 tablet, 1-2 mobile.
+   - Equal heights via flex column + min-height on title/desc.
+   - High contrast on prices, badges, buttons.
+   - Hover: lift + image zoom + red accent ring.
+   - Touch: quick view always visible.
+   ============================================================================ */
+
+.pb-product-card {
+  background: linear-gradient(180deg, var(--pb-charcoal) 0%, var(--pb-ink) 100%);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-lg);
+  box-shadow: var(--pb-shadow);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+  position: relative;
+  overflow: hidden;
+}
+
+.pb-product-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(225, 29, 46, 0.45);
+  box-shadow:
+    var(--pb-shadow-lg),
+    0 0 0 1px rgba(225, 29, 46, 0.18),
+    0 18px 40px -12px rgba(225, 29, 46, 0.22);
+}
+
+.pb-product-card:hover .pb-pc-image {
+  transform: scale(1.06);
+}
+
+.pb-product-card:hover .pb-pc-title {
+  color: #FFFFFF;
+}
+
+/* On focus (keyboard), show the same red accent ring without lift */
+.pb-product-card:focus-within {
+  border-color: rgba(225, 29, 46, 0.5);
+  box-shadow: var(--pb-shadow-lg), var(--pb-ring-focus);
+}
+
+.pb-pc-image {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.pb-pc-title {
+  transition: color 0.2s ease;
+}
+
+/* Quick view reveal — same behavior as v1, just renamed */
+.pb-pc-quickview {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.22s ease, transform 0.22s ease, background-color 0.18s ease;
+}
+
+.pb-product-card:hover .pb-pc-quickview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: none) {
+  .pb-pc-quickview {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   PREMIUM BADGES (NEW / SALE / POPULAR / BEST SELLER / LIMITED / -%)
+   ----------------------------------------------------------------------------
+   Black-with-red-border system. High contrast on every background.
+   ============================================================================ */
+
+.pb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  backdrop-filter: blur(8px);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.pb-badge-default    { background: rgba(0, 0, 0, 0.65); color: var(--pb-silver); border-color: rgba(255, 255, 255, 0.12); }
+.pb-badge-red        { background: rgba(225, 29, 46, 0.92); color: #FFFFFF; border-color: rgba(255, 80, 95, 0.9); }
+.pb-badge-yellow     { background: rgba(255, 201, 40, 0.92); color: #1a1a1a; border-color: rgba(255, 220, 100, 0.9); }
+.pb-badge-green      { background: rgba(16, 185, 129, 0.92); color: #FFFFFF; border-color: rgba(52, 211, 153, 0.9); }
+.pb-badge-blue       { background: rgba(59, 130, 246, 0.92); color: #FFFFFF; border-color: rgba(96, 165, 250, 0.9); }
+.pb-badge-silver     { background: rgba(229, 231, 235, 0.92); color: #0E0E10; border-color: rgba(255, 255, 255, 0.9); }
+.pb-badge-dark       { background: rgba(14, 14, 16, 0.92); color: var(--pb-silver); border-color: var(--pb-line); }
+
+/* ============================================================================
+   PREMIUM BUTTONS (CTA system)
+   ----------------------------------------------------------------------------
+   - .pb-btn-primary    → red gradient (main CTA: Add to Cart, Buy Now)
+   - .pb-btn-secondary  → silver border (Quick View, secondary)
+   - .pb-btn-ghost      → transparent (wishlist, icon-only)
+   - .pb-btn-dark       → charcoal (admin toolbar, tertiary)
+   - .pb-btn-success    → emerald (alt CTA where needed)
+   - .pb-btn-sm         → size modifier
+   - .pb-btn-block      → full width
+   ============================================================================ */
+
+.pb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--pb-radius-sm);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.pb-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--pb-ring-focus);
+}
+
+.pb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pb-btn-primary {
+  background: linear-gradient(180deg, #FF2E42 0%, #E11D2E 100%);
+  color: #FFFFFF;
+  border-color: rgba(255, 80, 95, 0.5);
+  box-shadow: 0 4px 12px -2px rgba(225, 29, 46, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.pb-btn-primary:hover {
+  background: linear-gradient(180deg, #FF4458 0%, #E11D2E 100%);
+  box-shadow: 0 6px 20px -4px rgba(225, 29, 46, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.pb-btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.pb-btn-secondary {
+  background: var(--pb-charcoal-2);
+  color: var(--pb-silver);
+  border-color: var(--pb-line);
+  box-shadow: var(--pb-shadow-sm);
+}
+
+.pb-btn-secondary:hover {
+  background: var(--pb-charcoal-3);
+  color: var(--pb-white);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.pb-btn-ghost {
+  background: transparent;
+  color: var(--pb-silver-2);
+  border-color: transparent;
+}
+
+.pb-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--pb-white);
+}
+
+.pb-btn-dark {
+  background: var(--pb-charcoal-3);
+  color: var(--pb-silver);
+  border-color: var(--pb-line);
+}
+
+.pb-btn-dark:hover {
+  background: var(--pb-charcoal-2);
+  color: var(--pb-white);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.pb-btn-success {
+  background: linear-gradient(180deg, #10B981 0%, #059669 100%);
+  color: #FFFFFF;
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.pb-btn-success:hover {
+  background: linear-gradient(180deg, #34D399 0%, #059669 100%);
+  box-shadow: 0 6px 20px -4px rgba(16, 185, 129, 0.55);
+  transform: translateY(-1px);
+}
+
+.pb-btn-sm {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.6875rem;
+}
+
+.pb-btn-block {
+  width: 100%;
+}
+
+/* ============================================================================
+   PREMIUM PRICE BLOCK
+   ----------------------------------------------------------------------------
+   Designed for visual dominance — current price is large + white,
+   strike-through is silver-3, discount % is red badge, savings is small emerald text.
+   ============================================================================ */
+
+.pb-price-current {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: var(--pb-white);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.pb-price-original {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--pb-silver-3);
+  text-decoration: line-through;
+  text-decoration-color: rgba(225, 29, 46, 0.6);
+  line-height: 1;
+}
+
+.pb-price-savings {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--pb-emerald);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ============================================================================
+   PREMIUM STATUS PILLS (stock / availability)
+   ============================================================================ */
+
+.pb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+.pb-status-in-stock    { color: var(--pb-emerald); background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
+.pb-status-low-stock   { color: var(--pb-amber);   background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); }
+.pb-status-out-stock   { color: #FF2E42;            background: rgba(225, 29, 46, 0.1); border-color: rgba(225, 29, 46, 0.35); }
+.pb-status-published   { color: var(--pb-emerald); background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
+.pb-status-draft       { color: var(--pb-silver-2); background: rgba(255, 255, 255, 0.04); border-color: var(--pb-line); }
+.pb-status-archived    { color: var(--pb-silver-3); background: rgba(255, 255, 255, 0.03); border-color: var(--pb-line); }
+
+/* ============================================================================
+   PREMIUM VARIANT SELECTOR (chips)
+   ============================================================================ */
+
+.pb-variant-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--pb-radius-sm);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--pb-silver-2);
+  background: var(--pb-charcoal-3);
+  border: 1px solid var(--pb-line);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pb-variant-chip:hover {
+  color: var(--pb-white);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--pb-charcoal-2);
+}
+
+.pb-variant-chip.is-selected {
+  color: #FFFFFF;
+  background: rgba(225, 29, 46, 0.18);
+  border-color: rgba(225, 29, 46, 0.55);
+  font-weight: 700;
+}
+
+.pb-variant-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--pb-ring-focus);
+}
+
+/* ============================================================================
+   PREMIUM SKELETON (loading state)
+   ============================================================================ */
+
+@keyframes pb-shimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+
+.pb-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(42, 42, 47, 0.3) 25%,
+    rgba(42, 42, 47, 0.6) 50%,
+    rgba(42, 42, 47, 0.3) 75%
+  );
+  background-size: 936px 100%;
+  animation: pb-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--pb-radius-sm);
+}
+
+.pb-skeleton-card {
+  background: var(--pb-charcoal);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-lg);
+  overflow: hidden;
+}
+
+/* ============================================================================
+   PREMIUM FORM ELEMENTS (admin + auth)
+   ============================================================================ */
+
+.pb-input {
+  background: var(--pb-charcoal-3);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-sm);
+  color: var(--pb-silver);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.8125rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  width: 100%;
+}
+
+.pb-input:focus,
+.pb-input:focus-visible {
+  outline: none;
+  border-color: var(--pb-red);
+  box-shadow: var(--pb-ring-focus);
+  background: var(--pb-charcoal-2);
+}
+
+.pb-input::placeholder {
+  color: var(--pb-silver-4);
+}
+
+.pb-input.input-error {
+  border-color: rgba(255, 46, 66, 0.7);
+  box-shadow: 0 0 0 3px rgba(225, 29, 46, 0.15);
+}
+
+.pb-label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--pb-silver-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+}
+
+.pb-select {
+  background: var(--pb-charcoal-3);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-sm);
+  color: var(--pb-silver);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B8BABF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 0.95rem;
+  padding-right: 2rem;
+}
+
+.pb-select:focus,
+.pb-select:focus-visible {
+  outline: none;
+  border-color: var(--pb-red);
+  box-shadow: var(--pb-ring-focus);
+}
+
+.pb-select option {
+  background: var(--pb-charcoal);
+  color: var(--pb-silver);
+}
+
+/* ============================================================================
+   PREMIUM DIVIDER & UTILITIES
+   ============================================================================ */
+
+.pb-divider {
+  height: 1px;
+  background: var(--pb-line);
+  border: none;
+  margin: var(--pb-space-4) 0;
+}
+
+.pb-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pb-red-bright);
+}
+
+.pb-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 1.5rem;
+  height: 2px;
+  background: var(--pb-red);
+  border-radius: 1px;
+}
+
+.pb-link {
+  color: var(--pb-silver);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  border-bottom: 1px solid transparent;
+}
+
+.pb-link:hover {
+  color: var(--pb-white);
+  border-bottom-color: var(--pb-red);
+}
+
+/* ============================================================================
+   PREMIUM FOCUS RING (global — applies to all interactive elements by default)
+   ----------------------------------------------------------------------------
+   Removes default outline, replaces with a 3px red ring on focus-visible.
+   Keeps keyboard navigation visible and accessible.
+   ============================================================================ */
+
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--pb-ring-focus);
+  border-radius: var(--pb-radius-sm);
+}
+
+/* Don't double-apply on inputs that already have their own focus ring */
+.pb-input:focus-visible,
+.pb-select:focus-visible,
+.pb-inset:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: var(--pb-ring-focus) !important;
+}
+
+/* ============================================================================
+   PREMIUM GRID HELPER
+   ----------------------------------------------------------------------------
+   Standard responsive product grid: 2 cols mobile, 3 tablet, 4-5 desktop.
+   ============================================================================ */
+
+.pb-grid-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pb-space-4);
+}
+
+@media (min-width: 640px) {
+  .pb-grid-products {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--pb-space-5);
+  }
+}
+
+@media (min-width: 1024px) {
+  .pb-grid-products {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--pb-space-5);
+  }
+}
+
+@media (min-width: 1536px) {
+  .pb-grid-products {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* Compact variant for related-products rails (smaller cards) */
+.pb-grid-products-compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pb-space-3);
+}
+
+@media (min-width: 768px) {
+  .pb-grid-products-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .pb-grid-products-compact {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ============================================================================
+   PREMIUM IMAGE FALLBACK
+   ----------------------------------------------------------------------------
+   Shown when product.images is empty or the URL fails to load.
+   ============================================================================ */
+
+.pb-image-fallback {
+  background:
+    linear-gradient(135deg, var(--pb-charcoal-2) 0%, var(--pb-charcoal) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pb-silver-4);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.pb-image-fallback::after {
+  content: 'No Image';
+}
+
+/* ============================================================================
+   PREMIUM SECTION HEADER
+   ----------------------------------------------------------------------------
+   Shared between storefront sections.
+   ============================================================================ */
+
+.pb-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: var(--pb-space-6);
+}
+
+.pb-section-header h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--pb-white);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+@media (min-width: 768px) {
+  .pb-section-header h2 {
+    font-size: 2.25rem;
+  }
+}
+
+.pb-section-header p {
+  color: var(--pb-silver-3);
+  font-size: 0.875rem;
+  max-width: 42rem;
+}
+
+/* ============================================================================
+   PREMIUM TOGGLE SWITCH (admin: featured / trending / visibility)
+   ============================================================================ */
+
+.pb-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pb-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.pb-toggle-track {
+  width: 2.5rem;
+  height: 1.4rem;
+  background: var(--pb-charcoal-3);
+  border: 1px solid var(--pb-line);
+  border-radius: 9999px;
+  position: relative;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.pb-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.4rem - 6px);
+  height: calc(1.4rem - 6px);
+  background: var(--pb-silver-2);
+  border-radius: 9999px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+
+.pb-toggle input:checked + .pb-toggle-track {
+  background: rgba(225, 29, 46, 0.18);
+  border-color: rgba(225, 29, 46, 0.5);
+}
+
+.pb-toggle input:checked + .pb-toggle-track .pb-toggle-thumb {
+  transform: translateX(calc(2.5rem - 1.4rem));
+  background: var(--pb-red-bright);
+}
+
+.pb-toggle input:focus-visible + .pb-toggle-track {
+  box-shadow: var(--pb-ring-focus);
+}
+
+/* ============================================================================
+   PREMIUM TAB / SEGMENTED CONTROL
+   ============================================================================ */
+
+.pb-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem;
+  background: var(--pb-charcoal);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius);
+}
+
+.pb-tab {
+  padding: 0.4rem 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pb-silver-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--pb-radius-sm);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.pb-tab:hover {
+  color: var(--pb-silver);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pb-tab.is-active {
+  color: #FFFFFF;
+  background: linear-gradient(180deg, #FF2E42 0%, #E11D2E 100%);
+  box-shadow: 0 2px 6px rgba(225, 29, 46, 0.4);
+}
+
+/* ============================================================================
+   PREMIUM KPI CARD (admin dashboard)
+   ============================================================================ */
+
+.pb-kpi {
+  background: linear-gradient(180deg, var(--pb-charcoal) 0%, var(--pb-ink) 100%);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-lg);
+  padding: var(--pb-space-5);
+  box-shadow: var(--pb-shadow);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.pb-kpi:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.pb-kpi-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--pb-radius-lg) var(--pb-radius-lg) 0 0;
+}
+
+.pb-kpi-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pb-silver-3);
+}
+
+.pb-kpi-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--pb-white);
+  line-height: 1;
+  margin-top: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.pb-kpi-delta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  margin-top: 0.4rem;
+}
+
+.pb-kpi-delta.up    { color: var(--pb-emerald); }
+.pb-kpi-delta.down  { color: #FF2E42; }
+.pb-kpi-delta.flat  { color: var(--pb-silver-3); }
+
+/* ============================================================================
+   PREMIUM TABLE (admin)
+   ============================================================================ */
+
+.pb-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+}
+
+.pb-table thead th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pb-silver-3);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: var(--pb-charcoal);
+  border-bottom: 1px solid var(--pb-line);
+}
+
+.pb-table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--pb-line);
+  color: var(--pb-silver);
+  vertical-align: middle;
+}
+
+.pb-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.pb-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ============================================================================
+   PREMIUM ANIMATION (entrance)
+   ============================================================================ */
+
+@keyframes pb-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pb-fade-up {
+  animation: pb-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pb-pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 29, 46, 0.6); }
+  50%      { box-shadow: 0 0 0 6px rgba(225, 29, 46, 0); }
+}
+
+.pb-pulse-red {
+  animation: pb-pulse-red 2s ease-in-out infinite;
+}
+
+/* ============================================================================
+   PREMIUM SCROLLBAR
+   ============================================================================ */
+
+.pb-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.pb-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pb-scroll::-webkit-scrollbar-thumb {
+  background: var(--pb-line);
+  border-radius: 9999px;
+}
+
+.pb-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--pb-silver-4);
+}
+
+/* ============================================================================
+   PREMIUM MOBILE FILTER DRAWER (storefront search/filter)
+   ============================================================================ */
+
+.pb-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 60;
+}
+
+.pb-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 85vh;
+  background: var(--pb-charcoal);
+  border-top: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius-xl) var(--pb-radius-xl) 0 0;
+  box-shadow: 0 -12px 32px -8px rgba(0, 0, 0, 0.6);
+  z-index: 61;
+  overflow-y: auto;
+  padding: var(--pb-space-5);
+}
+
+@media (min-width: 768px) {
+  .pb-drawer-overlay,
+  .pb-drawer { display: none !important; }
+}
+
+/* ============================================================================
+   PREMIUM RESPONSIVE HELPERS
+   ============================================================================ */
+
+.pb-hide-mobile { display: none; }
+@media (min-width: 768px) { .pb-hide-mobile { display: initial; } }
+
+.pb-show-mobile { display: initial; }
+@media (min-width: 768px) { .pb-show-mobile { display: none; } }
+
+/* Container max-width for storefront sections */
+.pb-container {
+  width: 100%;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--pb-space-4);
+  padding-right: var(--pb-space-4);
+}
+
+@media (min-width: 768px) {
+  .pb-container {
+    padding-left: var(--pb-space-6);
+    padding-right: var(--pb-space-6);
+  }
+}
