@@ -617,49 +617,83 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* 5b. CATEGORY NAV BAR — Video Streaming / Games / Top Up / AI Tools / Smart Projectors */}
+      {/* 5b. CATEGORY NAV BAR — Video Streaming / Games / Top Up / AI Tools / Smart Projectors + Sign In / Sign Up */}
       <div className="hidden md:block w-full border-t border-[#26334A] bg-[#050810] px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-1 py-2 overflow-x-auto no-scrollbar">
-          {[
-            { label: 'Video Streaming', icon: Film, cat: 'streaming', type: 'digital' as const },
-            { label: 'Games', icon: Gamepad2, cat: 'gaming', type: 'digital' as const },
-            { label: 'Top Up', icon: Smartphone, cat: 'gaming', type: 'digital' as const },
-            { label: 'AI Tools', icon: Bot, cat: 'saas', type: 'digital' as const },
-            { label: 'Smart Projectors', icon: Projector, cat: 'smart-projectors', type: 'physical_projector' as const },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = selectedCategory === item.cat;
-            return (
-              <button
-                key={item.label}
-                onClick={() => {
-                  // Block guests from browsing — force sign in
-                  if (currentUser.id === 'guest') {
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 py-2 overflow-x-auto no-scrollbar">
+          {/* Left: category buttons */}
+          <div className="flex items-center gap-1">
+            {[
+              { label: 'Video Streaming', icon: Film, cat: 'streaming', type: 'digital' as const },
+              { label: 'Games', icon: Gamepad2, cat: 'gaming', type: 'digital' as const },
+              { label: 'Top Up', icon: Smartphone, cat: 'gaming', type: 'digital' as const },
+              { label: 'AI Tools', icon: Bot, cat: 'saas', type: 'digital' as const },
+              { label: 'Smart Projectors', icon: Projector, cat: 'smart-projectors', type: 'physical_projector' as const },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = selectedCategory === item.cat;
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    if (currentUser.id === 'guest') {
+                      setIsAuthModalOpen(true);
+                      addToast('info', 'Sign In Required', 'Please sign in or create an account to browse products.');
+                      return;
+                    }
+                    setSelectedCategory(item.cat);
+                    setProductTypeFilter(item.type);
+                    setActivePromoFilter('all');
+                    setActiveView('store');
+                    setTimeout(() => {
+                      const el = document.getElementById('catalog');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right: Sign In / Sign Up (guest) or user name (logged in) */}
+          <div className="flex items-center gap-2 shrink-0 pl-4 border-l border-[#26334A]">
+            {currentUser.id === 'guest' ? (
+              <>
+                <button
+                  onClick={() => {
                     setIsAuthModalOpen(true);
-                    addToast('info', 'Sign In Required', 'Please sign in or create an account to browse products.');
-                    return;
-                  }
-                  setSelectedCategory(item.cat);
-                  setProductTypeFilter(item.type);
-                  setActivePromoFilter('all');
-                  setActiveView('store');
-                  // Scroll to catalog
-                  setTimeout(() => {
-                    const el = document.getElementById('catalog');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }, 100);
-                }}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/30 transition-all"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsAuthModalOpen(true);
+                    // The auth modal defaults to login mode — it has a "Sign Up" toggle
+                  }}
+                  className="btn-glossy btn-glossy-emerald btn-glossy-sm"
+                >
+                  <span>Sign Up</span>
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <div className="w-5 h-5 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[10px] font-bold">
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs font-medium text-emerald-300">{currentUser.name}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -737,6 +771,31 @@ export const Header: React.FC = () => {
                 );
               })}
             </div>
+
+            {/* Sign In / Sign Up — mobile */}
+            {currentUser.id === 'guest' && (
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#26334A]">
+                <button
+                  onClick={() => {
+                    setIsAuthModalOpen(true);
+                    setIsMobileNavOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-widest"
+                >
+                  <Shield className="w-4 h-4" />
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    setIsAuthModalOpen(true);
+                    setIsMobileNavOpen(false);
+                  }}
+                  className="btn-glossy btn-glossy-emerald btn-glossy-sm w-full"
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
 
             {/* Promotional Quick Links */}
             <div className="space-y-1">
