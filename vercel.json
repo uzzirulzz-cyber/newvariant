@@ -6,7 +6,9 @@
   "outputDirectory": "dist/public",
   "functions": {
     "api/index.ts": {
-      "maxDuration": 60
+      "runtime": "@vercel/node@5",
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "rewrites": [
