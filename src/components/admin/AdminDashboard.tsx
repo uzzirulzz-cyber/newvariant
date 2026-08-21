@@ -23,6 +23,13 @@ import {
   AlertTriangle,
   Loader2,
   X,
+  Play,
+  BarChart3,
+  FileText,
+  Calendar,
+  ChevronDown,
+  Download,
+  Settings,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -154,7 +161,8 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-5">
       {/* ============================================
-          DASHBOARD HEADER + RESET BUTTON + TAB SELECTOR
+          DASHBOARD HEADER — Flare UI + DashFlat hybrid
+          Icon+text tab buttons, pill action buttons, date selector, export, settings, reset
           ============================================ */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
@@ -166,43 +174,68 @@ export const AdminDashboard: React.FC = () => {
             <p className="text-xs text-gray-500 mt-0.5">Live metrics, orders, and product performance.</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Tab selector — Activities / Statistics / Summary (DashFlat style) */}
-          <div className="flex items-center p-1 rounded-lg bg-[#0f141c] border border-[#1f2937]">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Icon+text tab buttons — DashFlat style (Activities/Statistics/Summary with icons) */}
+          <div className="flex items-center p-1 rounded-xl bg-[#0f141c] border border-[#1f2937]">
             {([
-              { id: 'activities', label: 'Activities' },
-              { id: 'statistics', label: 'Statistics' },
-              { id: 'summary', label: 'Summary' },
-            ] as const).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setDashboardTab(tab.id)}
-                className={`px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all ${
-                  dashboardTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+              { id: 'activities', label: 'Activities', icon: Play },
+              { id: 'statistics', label: 'Statistics', icon: BarChart3 },
+              { id: 'summary', label: 'Summary', icon: FileText },
+            ] as const).map((tab) => {
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setDashboardTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    dashboardTab === tab.id
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  <TabIcon className="w-3 h-3" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
+
+          {/* Pill-shaped date-range selector (Flare UI "Today" dropdown style) */}
+          <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0f141c] border border-[#1f2937] hover:border-[#3a4256] text-xs text-gray-300 hover:text-white transition-colors">
+            <Calendar className="w-3.5 h-3.5 text-blue-400" />
+            <span>{timeRange === '1D' ? 'Today' : timeRange === '1W' ? 'This Week' : timeRange === '1M' ? 'This Month' : 'This Year'}</span>
+            <ChevronDown className="w-3 h-3 text-gray-500" />
+          </button>
+
+          {/* Pill export button */}
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider transition-colors">
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
+
+          {/* Circular settings gear button (DashFlat floating action style) */}
+          <button className="w-9 h-9 rounded-full bg-[#0f141c] border border-[#1f2937] hover:border-purple-500/50 hover:bg-purple-500/10 flex items-center justify-center text-gray-400 hover:text-purple-400 transition-colors" aria-label="Settings">
+            <Settings className="w-4 h-4" />
+          </button>
+
+          {/* Reset dashboard — red pill */}
           <button
             onClick={() => setIsResetOpen(true)}
-            className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider transition-colors"
           >
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset</span>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset</span>
           </button>
         </div>
       </div>
 
       {/* ============================================
           COLORFUL KPI CARDS WITH SPARKLINES (Flare UI style)
+          Each card: solid colored bg, large bold number, trend badge, mini sparkline
           ============================================ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Revenue — emerald */}
-        <div className="rounded-xl p-5 bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg">
+        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] uppercase text-emerald-100 tracking-wider font-mono font-bold">Total Revenue</div>
             <TrendingUp className="w-4 h-4 text-emerald-200" />
@@ -211,16 +244,15 @@ export const AdminDashboard: React.FC = () => {
           <div className="text-[10px] text-emerald-200 mt-1 flex items-center gap-1">
             <ArrowUpRight className="w-3 h-3" /> +18.4% vs last period
           </div>
-          {/* Mini sparkline bars */}
           <div className="flex items-end gap-0.5 mt-3 h-8">
             {[40, 55, 45, 70, 60, 85, 75, 90, 80, 95].map((h, i) => (
               <div key={i} className="flex-1 bg-emerald-300/40 rounded-sm" style={{ height: `${h}%` }} />
             ))}
           </div>
-        </div>
+        </button>
 
         {/* Orders — blue */}
-        <div className="rounded-xl p-5 bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
+        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] uppercase text-blue-100 tracking-wider font-mono font-bold">Total Orders</div>
             <ShoppingCart className="w-4 h-4 text-blue-200" />
@@ -234,10 +266,10 @@ export const AdminDashboard: React.FC = () => {
               <div key={i} className="flex-1 bg-blue-300/40 rounded-sm" style={{ height: `${h}%` }} />
             ))}
           </div>
-        </div>
+        </button>
 
         {/* Products — purple */}
-        <div className="rounded-xl p-5 bg-gradient-to-br from-purple-600 to-purple-700 shadow-lg">
+        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-purple-600 to-purple-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] uppercase text-purple-100 tracking-wider font-mono font-bold">Products</div>
             <Package className="w-4 h-4 text-purple-200" />
@@ -251,10 +283,10 @@ export const AdminDashboard: React.FC = () => {
               <div key={i} className="flex-1 bg-purple-300/40 rounded-sm" style={{ height: `${h}%` }} />
             ))}
           </div>
-        </div>
+        </button>
 
-        {/* Low Stock — amber/red */}
-        <div className="rounded-xl p-5 bg-gradient-to-br from-amber-600 to-red-600 shadow-lg">
+        {/* Low Stock — amber/red gradient */}
+        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-amber-600 to-red-600 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] uppercase text-amber-100 tracking-wider font-mono font-bold">Low Stock Alerts</div>
             <AlertTriangle className="w-4 h-4 text-amber-200" />
@@ -268,27 +300,30 @@ export const AdminDashboard: React.FC = () => {
               <div key={i} className="flex-1 bg-amber-300/40 rounded-sm" style={{ height: `${h}%` }} />
             ))}
           </div>
-        </div>
+        </button>
       </div>
 
       {/* ============================================
-          TIME RANGE TOGGLE (DashFlat style 1D/1W/1M/1Y)
+          TIME RANGE SEGMENTED CONTROL + VIEW LABEL (DashFlat 1D/1W/1M/1Y)
           ============================================ */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-[#0f141c] border border-[#1f2937]">
-          {(['1D', '1W', '1M', '1Y'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
-                timeRange === range
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {range}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mr-1">Range:</span>
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[#0f141c] border border-[#1f2937]">
+            {(['1D', '1W', '1M', '1Y'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`px-3 py-1.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
+                  timeRange === range
+                    ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm shadow-blue-600/30'
+                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                }`}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
         </div>
         <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">
           Showing: {timeRange === '1D' ? 'Last 24 hours' : timeRange === '1W' ? 'Last 7 days' : timeRange === '1M' ? 'Last 30 days' : 'Last 12 months'}
