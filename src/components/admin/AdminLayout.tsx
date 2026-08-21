@@ -62,6 +62,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuthStore } from '../../store/useAuthStore';
+import { LogOut } from 'lucide-react';
 
 /**
  * Admin layout matching the screenshot the user shared:
@@ -160,9 +162,21 @@ const findActiveLabel = (id: string): string => {
 const COMING_SOON_META: Record<string, { description: string; features: string[] }> = {};
 
 export const AdminLayout: React.FC = () => {
-  const { setActiveView, currentUser, setIsAuthModalOpen, adminTab, setAdminTab, setIsWhatsAppModalOpen } = useStore();
+  const { setActiveView, currentUser, setCurrentUser, setIsAuthModalOpen, adminTab, setAdminTab, setIsWhatsAppModalOpen, addToast } = useStore();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const handleSignOut = () => {
+    useAuthStore.getState().logout();
+    setCurrentUser({
+      id: 'guest', name: 'Guest', email: 'guest@playbeat.digital', role: 'customer',
+      twoFactorEnabled: false, addresses: [], totalSpent: 0, ordersCount: 0,
+      wishlist: [], status: 'active', createdAt: new Date().toISOString(),
+    });
+    addToast('info', 'Signed Out', 'You have been logged out.');
+    setActiveView('store');
+  };
 
   const handleTabSelect = (id: string) => {
     setAdminTab(id);
@@ -301,14 +315,35 @@ export const AdminLayout: React.FC = () => {
   // Sidebar content — shared between desktop sidebar and mobile drawer
   const sidebarContent = (
     <>
-      {/* Brand strip at top of sidebar */}
+      {/* Brand strip + collapse toggle */}
       <div className="px-5 py-4 border-b border-[#1f2937] flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-black font-bold text-sm shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-black font-bold text-sm shrink-0">
           P
         </div>
-        <div className="min-w-0">
+        <div className="sidebar-brand-text min-w-0 flex-1">
           <div className="text-sm font-bold text-white font-display truncate">PlayBeat Digital</div>
           <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Admin Console</div>
+        </div>
+        {/* Collapse toggle — desktop only */}
+        <button
+          onClick={() => setIsCollapsed(v => !v)}
+          className="hidden md:flex p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors sidebar-footer-text"
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* User Profile area */}
+      <div className="p-3 border-b border-[#1f2937]">
+        <div className="sidebar-profile">
+          <div className="sidebar-profile-avatar">
+            {currentUser.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="sidebar-profile-info">
+            <div className="sidebar-profile-name">{currentUser.name}</div>
+            <div className="sidebar-profile-email">{currentUser.email}</div>
+          </div>
         </div>
       </div>
 
@@ -328,8 +363,10 @@ export const AdminLayout: React.FC = () => {
                     className={`admin-nav-item ${isActive ? 'is-active' : ''}`}
                     aria-current={isActive ? 'page' : undefined}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-gray-500'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-400' : 'text-gray-500'}`} />
                     <span className="flex-1 truncate">{item.label}</span>
+                    {/* Tooltip — visible only in collapsed mode */}
+                    <span className="admin-nav-item-tooltip">{item.label}</span>
                   </button>
                 );
               })}
@@ -338,22 +375,27 @@ export const AdminLayout: React.FC = () => {
         ))}
       </nav>
 
-      {/* Sidebar footer — Themes & Sections toggle */}
-      <div className="border-t border-[#1f2937] p-3 space-y-1">
+      {/* Sidebar footer — Themes, Nav Customizer + Sign Out */}
+      <div className="border-t border-[#1f2937] p-3 space-y-0.5">
         <button
           onClick={() => handleTabSelect('content')}
           className={`admin-nav-item ${adminTab === 'content' ? 'is-active' : ''}`}
         >
-          <Palette className={`w-4 h-4 shrink-0 ${adminTab === 'content' ? 'text-amber-400' : 'text-gray-500'}`} />
-          <span className="flex-1 text-left truncate">Themes & Sections</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          <Palette className={`w-4 h-4 shrink-0 ${adminTab === 'content' ? 'text-emerald-400' : 'text-gray-500'}`} />
+          <span className="flex-1 text-left truncate sidebar-footer-text">Themes & Sections</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500 sidebar-footer-text" />
         </button>
         <button
           onClick={() => handleTabSelect('nav-manager')}
           className={`admin-nav-item ${adminTab === 'nav-manager' ? 'is-active' : ''}`}
         >
-          <LayoutDashboard className={`w-4 h-4 shrink-0 ${adminTab === 'nav-manager' ? 'text-amber-400' : 'text-gray-500'}`} />
-          <span className="flex-1 text-left truncate">Navigation Customizer</span>
+          <LayoutDashboard className={`w-4 h-4 shrink-0 ${adminTab === 'nav-manager' ? 'text-emerald-400' : 'text-gray-500'}`} />
+          <span className="flex-1 text-left truncate sidebar-footer-text">Navigation Customizer</span>
+        </button>
+        {/* Sign Out */}
+        <button onClick={handleSignOut} className="sidebar-signout">
+          <LogOut className="w-4 h-4 shrink-0" />
+          <span className="sidebar-footer-text">Sign Out</span>
         </button>
       </div>
     </>
@@ -362,9 +404,9 @@ export const AdminLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0b0d10] text-gray-200 flex">
       {/* ===========================================================
-          DESKTOP SIDEBAR (260px, fixed)
+          DESKTOP SIDEBAR (260px or 64px collapsed, fixed)
           =========================================================== */}
-      <aside className="hidden md:flex flex-col w-[260px] admin-sidebar fixed inset-y-0 left-0 z-30">
+      <aside className={`hidden md:flex flex-col w-[260px] admin-sidebar fixed inset-y-0 left-0 z-30 transition-all duration-200 ${isCollapsed ? 'admin-sidebar-collapsed' : ''}`}>
         {sidebarContent}
       </aside>
 
@@ -404,7 +446,7 @@ export const AdminLayout: React.FC = () => {
       {/* ===========================================================
           MAIN COLUMN (offset by sidebar width on desktop)
           =========================================================== */}
-      <div className="flex-1 md:ml-[260px] flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${isCollapsed ? 'md:ml-16' : 'md:ml-[260px]'}`}>
         {/* ---- TOP HEADER BAR ---- */}
         <header className="sticky top-0 z-20 bg-[#0f1115]/95 backdrop-blur-md border-b border-[#1f2937] px-4 sm:px-6 h-[60px] flex items-center justify-between gap-3">
           {/* Left side: hamburger + ALL CATEGORIES dropdown + breadcrumb */}
@@ -421,7 +463,7 @@ export const AdminLayout: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setIsCategoryMenuOpen((v) => !v)}
-                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-400 hover:text-amber-300 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400 hover:text-emerald-300 transition-colors"
               >
                 <span>All Categories</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
@@ -452,7 +494,7 @@ export const AdminLayout: React.FC = () => {
                                 onClick={() => handleTabSelect(item.id)}
                                 className={`admin-nav-item !py-1.5 !text-[12px] ${isActive ? 'is-active' : ''}`}
                               >
-                                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-gray-500'}`} />
+                                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-400' : 'text-gray-500'}`} />
                                 <span className="flex-1 truncate">{item.label}</span>
                               </button>
                             );
@@ -483,10 +525,10 @@ export const AdminLayout: React.FC = () => {
 
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="admin-gold-pill"
+              className="admin-teal-pill"
               aria-label={`Signed in as ${currentUser.role}`}
             >
-              <span className="w-4 h-4 rounded-full bg-amber-500 text-black flex items-center justify-center text-[10px] font-bold">
+              <span className="w-4 h-4 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[10px] font-bold">
                 {currentUser.name.charAt(0).toUpperCase()}
               </span>
               <span className="hidden sm:inline">Admin Panel</span>
