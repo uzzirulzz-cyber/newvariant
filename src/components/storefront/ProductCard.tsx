@@ -49,7 +49,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
     setSelectedProduct,
     formatPrice,
     isInCart,
+    currentUser,
+    setIsAuthModalOpen,
+    addToast,
   } = useStore();
+
+  const isGuest = currentUser.id === 'guest';
 
   // Local variation selection — defaults to the first available variation.
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | undefined>(
@@ -76,20 +81,42 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
   const stockState: 'out' | 'low' | 'healthy' =
     effectiveStock <= 0 ? 'out' : effectiveStock <= product.lowStockThreshold ? 'low' : 'healthy';
 
-  const handleCardClick = () => setSelectedProduct(product);
+  const handleCardClick = () => {
+    if (isGuest) {
+      setIsAuthModalOpen(true);
+      addToast('info', 'Sign In Required', 'Please sign in or create an account to view product details.');
+      return;
+    }
+    setSelectedProduct(product);
+  };
 
   const handleQuickView = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isGuest) {
+      setIsAuthModalOpen(true);
+      addToast('info', 'Sign In Required', 'Please sign in or create an account to view products.');
+      return;
+    }
     setSelectedProduct(product);
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isGuest) {
+      setIsAuthModalOpen(true);
+      addToast('info', 'Sign In Required', 'Please sign in or create an account to add items to cart.');
+      return;
+    }
     addToCart(product, selectedVariation, 1);
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isGuest) {
+      setIsAuthModalOpen(true);
+      addToast('info', 'Sign In Required', 'Please sign in or create an account to use wishlist.');
+      return;
+    }
     toggleWishlist(product.id);
   };
 

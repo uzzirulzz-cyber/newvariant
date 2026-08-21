@@ -26,7 +26,11 @@ import {
   Tv,
   Radio,
   Projector,
-  LogOut
+  LogOut,
+  Gamepad2,
+  Smartphone,
+  Bot,
+  Film
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -613,6 +617,52 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
+      {/* 5b. CATEGORY NAV BAR — Video Streaming / Games / Top Up / AI Tools / Smart Projectors */}
+      <div className="hidden md:block w-full border-t border-[#26334A] bg-[#050810] px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-1 py-2 overflow-x-auto no-scrollbar">
+          {[
+            { label: 'Video Streaming', icon: Film, cat: 'streaming', type: 'digital' as const },
+            { label: 'Games', icon: Gamepad2, cat: 'gaming', type: 'digital' as const },
+            { label: 'Top Up', icon: Smartphone, cat: 'gaming', type: 'digital' as const },
+            { label: 'AI Tools', icon: Bot, cat: 'saas', type: 'digital' as const },
+            { label: 'Smart Projectors', icon: Projector, cat: 'smart-projectors', type: 'physical_projector' as const },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = selectedCategory === item.cat;
+            return (
+              <button
+                key={item.label}
+                onClick={() => {
+                  // Block guests from browsing — force sign in
+                  if (currentUser.id === 'guest') {
+                    setIsAuthModalOpen(true);
+                    addToast('info', 'Sign In Required', 'Please sign in or create an account to browse products.');
+                    return;
+                  }
+                  setSelectedCategory(item.cat);
+                  setProductTypeFilter(item.type);
+                  setActivePromoFilter('all');
+                  setActiveView('store');
+                  // Scroll to catalog
+                  setTimeout(() => {
+                    const el = document.getElementById('catalog');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                }}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 6. MOBILE NAVIGATION DRAWER */}
       <AnimatePresence>
         {isMobileNavOpen && (
@@ -646,6 +696,46 @@ export const Header: React.FC = () => {
                 <User className="w-4 h-4" />
                 Vault
               </button>
+            </div>
+
+            {/* Category Quick Nav — mobile */}
+            <div className="space-y-1 pt-2 border-t border-[#26334A]">
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] font-mono mb-2">Browse Categories</div>
+              {[
+                { label: 'Video Streaming', icon: Film, cat: 'streaming', type: 'digital' as const },
+                { label: 'Games', icon: Gamepad2, cat: 'gaming', type: 'digital' as const },
+                { label: 'Top Up', icon: Smartphone, cat: 'gaming', type: 'digital' as const },
+                { label: 'AI Tools', icon: Bot, cat: 'saas', type: 'digital' as const },
+                { label: 'Smart Projectors', icon: Projector, cat: 'smart-projectors', type: 'physical_projector' as const },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      if (currentUser.id === 'guest') {
+                        setIsAuthModalOpen(true);
+                        setIsMobileNavOpen(false);
+                        addToast('info', 'Sign In Required', 'Please sign in or create an account to browse products.');
+                        return;
+                      }
+                      setSelectedCategory(item.cat);
+                      setProductTypeFilter(item.type);
+                      setActivePromoFilter('all');
+                      setIsMobileNavOpen(false);
+                      setActiveView('store');
+                      setTimeout(() => {
+                        const el = document.getElementById('catalog');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs text-slate-300 hover:bg-[#10182A] transition-colors"
+                  >
+                    <Icon className="w-4 h-4 text-[#1769FF]" />
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Promotional Quick Links */}
