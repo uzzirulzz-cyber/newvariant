@@ -53,38 +53,37 @@ export function createApiApp(): Express {
   });
 
   // ----------------------------------------------------
-  // DATABASE HEALTH (MongoDB Atlas connection probe)
+  // DATABASE HEALTH (MongoDB Atlas + PostgreSQL Neon)
   // ----------------------------------------------------
   app.get('/api/health/db', async (req, res) => {
     try {
-      // Dynamic import so the server still boots when MONGODB_URI is unset.
       const { pingMongo, isMongoConfigured, mongoHostSanitized } = await import('./src/lib/mongodb');
-      if (!isMongoConfigured) {
-        return res.status(503).json({
-          ok: false,
-          configured: false,
-          error: 'MONGODB_URI is not set. Add it to .env (see .env.example).',
-          host: 'not-configured',
-          timestamp: new Date().toISOString(),
-        });
-      }
-      const result = await pingMongo();
-      if (result.ok) {
-        return res.json({
-          ok: true,
-          configured: true,
-          host: mongoHostSanitized,
-          dbName: result.dbName,
-          serverInfo: result.serverInfo,
-          timestamp: new Date().toISOString(),
-        });
-      }
-      return res.status(503).json({
-        ok: false,
-        configured: true,
-        host: mongoHostSanitized,
-        error: result.error,
+      const { pingPostgres, isPostgresConfigured } = await import('./src/lib/postgres');
+
+      const result: any = {
         timestamp: new Date().toISOString(),
+        mongodb: { configured: isMongoConfigured },
+        postgres: { configured: isPostgresConfigured },
+      };
+
+      if (isMongoConfigured) {
+        const mongoResult = await pingMongo();
+        result.mongodb.ok = mongoResult.ok;
+        result.mongodb.host = mongoHostSanitized;
+        result.mongodb.error = mongoResult.error;
+        if (mongoResult.serverInfo) result.mongodb.serverInfo = mongoResult.serverInfo;
+      }
+
+      if (isPostgresConfigured) {
+        const pgResult = await pingPostgres();
+        result.postgres.ok = pgResult.ok;
+        result.postgres.error = pgResult.error;
+      }
+
+      const anyOk = result.mongodb.ok || result.postgres.ok;
+      return res.status(anyOk ? 200 : 503).json({
+        ok: anyOk,
+        ...result,
       });
     } catch (err: any) {
       return res.status(500).json({
@@ -94,7 +93,6 @@ export function createApiApp(): Express {
       });
     }
   });
-
   // ----------------------------------------------------
   // PRODUCTS API
   // ----------------------------------------------------
