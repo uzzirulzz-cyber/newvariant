@@ -25,8 +25,12 @@ async function getApp(): Promise<Express> {
 
   // Dynamic import so the dotenv/config side-effect only runs when the
   // serverless function is actually invoked (not at module load).
+  // NOTE: Use the extensionless path '../server' so both tsx (dev) and
+  // Vercel's @vercel/node builder (esbuild) can resolve it correctly.
+  // Using '../server.ts' works in tsx but fails on Vercel because esbuild
+  // compiles .ts → .js internally.
   await import('dotenv/config');
-  const { createApiApp } = await import('../server.ts');
+  const { createApiApp } = await import('../server');
   cachedApp = createApiApp();
   return cachedApp;
 }
