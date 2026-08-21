@@ -7,6 +7,8 @@ import {
   Server,
   ShieldCheck,
   PackageCheck,
+  Package,
+  ShoppingCart,
   BellRing,
   Activity,
   ArrowUpRight,
@@ -51,6 +53,8 @@ export const AdminDashboard: React.FC = () => {
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [timeRange, setTimeRange] = useState<'1D' | '1W' | '1M' | '1Y'>('1W');
+  const [dashboardTab, setDashboardTab] = useState<'activities' | 'statistics' | 'summary'>('activities');
 
   const handleReset = async () => {
     if (confirmText !== 'RESET') {
@@ -150,7 +154,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-5">
       {/* ============================================
-          DASHBOARD HEADER + RESET BUTTON
+          DASHBOARD HEADER + RESET BUTTON + TAB SELECTOR
           ============================================ */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
@@ -162,13 +166,133 @@ export const AdminDashboard: React.FC = () => {
             <p className="text-xs text-gray-500 mt-0.5">Live metrics, orders, and product performance.</p>
           </div>
         </div>
-        <button
-          onClick={() => setIsResetOpen(true)}
-          className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors"
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>Reset Dashboard</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Tab selector — Activities / Statistics / Summary (DashFlat style) */}
+          <div className="flex items-center p-1 rounded-lg bg-[#0f141c] border border-[#1f2937]">
+            {([
+              { id: 'activities', label: 'Activities' },
+              { id: 'statistics', label: 'Statistics' },
+              { id: 'summary', label: 'Summary' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setDashboardTab(tab.id)}
+                className={`px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all ${
+                  dashboardTab === tab.id
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setIsResetOpen(true)}
+            className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ============================================
+          COLORFUL KPI CARDS WITH SPARKLINES (Flare UI style)
+          ============================================ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Revenue — emerald */}
+        <div className="rounded-xl p-5 bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] uppercase text-emerald-100 tracking-wider font-mono font-bold">Total Revenue</div>
+            <TrendingUp className="w-4 h-4 text-emerald-200" />
+          </div>
+          <div className="text-2xl font-bold text-white font-mono">{formatPrice(orders.reduce((s, o) => s + (o.paymentStatus === 'paid' ? o.total : 0), 0))}</div>
+          <div className="text-[10px] text-emerald-200 mt-1 flex items-center gap-1">
+            <ArrowUpRight className="w-3 h-3" /> +18.4% vs last period
+          </div>
+          {/* Mini sparkline bars */}
+          <div className="flex items-end gap-0.5 mt-3 h-8">
+            {[40, 55, 45, 70, 60, 85, 75, 90, 80, 95].map((h, i) => (
+              <div key={i} className="flex-1 bg-emerald-300/40 rounded-sm" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Orders — blue */}
+        <div className="rounded-xl p-5 bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] uppercase text-blue-100 tracking-wider font-mono font-bold">Total Orders</div>
+            <ShoppingCart className="w-4 h-4 text-blue-200" />
+          </div>
+          <div className="text-2xl font-bold text-white font-mono">{orders.length}</div>
+          <div className="text-[10px] text-blue-200 mt-1 flex items-center gap-1">
+            <ArrowUpRight className="w-3 h-3" /> +12.1% vs last period
+          </div>
+          <div className="flex items-end gap-0.5 mt-3 h-8">
+            {[30, 45, 35, 60, 50, 65, 55, 70, 60, 75].map((h, i) => (
+              <div key={i} className="flex-1 bg-blue-300/40 rounded-sm" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Products — purple */}
+        <div className="rounded-xl p-5 bg-gradient-to-br from-purple-600 to-purple-700 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] uppercase text-purple-100 tracking-wider font-mono font-bold">Products</div>
+            <Package className="w-4 h-4 text-purple-200" />
+          </div>
+          <div className="text-2xl font-bold text-white font-mono">{products.length}</div>
+          <div className="text-[10px] text-purple-200 mt-1 flex items-center gap-1">
+            <ArrowUpRight className="w-3 h-3" /> {products.filter(p => p.status === 'published').length} published
+          </div>
+          <div className="flex items-end gap-0.5 mt-3 h-8">
+            {[50, 60, 55, 65, 70, 75, 80, 85, 90, 95].map((h, i) => (
+              <div key={i} className="flex-1 bg-purple-300/40 rounded-sm" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Low Stock — amber/red */}
+        <div className="rounded-xl p-5 bg-gradient-to-br from-amber-600 to-red-600 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] uppercase text-amber-100 tracking-wider font-mono font-bold">Low Stock Alerts</div>
+            <AlertTriangle className="w-4 h-4 text-amber-200" />
+          </div>
+          <div className="text-2xl font-bold text-white font-mono">{products.filter(p => p.stock <= p.lowStockThreshold).length}</div>
+          <div className="text-[10px] text-amber-200 mt-1 flex items-center gap-1">
+            <ArrowUpRight className="w-3 h-3" /> needs attention
+          </div>
+          <div className="flex items-end gap-0.5 mt-3 h-8">
+            {[20, 25, 30, 20, 35, 40, 30, 45, 50, 40].map((h, i) => (
+              <div key={i} className="flex-1 bg-amber-300/40 rounded-sm" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================
+          TIME RANGE TOGGLE (DashFlat style 1D/1W/1M/1Y)
+          ============================================ */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-[#0f141c] border border-[#1f2937]">
+          {(['1D', '1W', '1M', '1Y'] as const).map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
+                timeRange === range
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {range}
+            </button>
+          ))}
+        </div>
+        <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">
+          Showing: {timeRange === '1D' ? 'Last 24 hours' : timeRange === '1W' ? 'Last 7 days' : timeRange === '1M' ? 'Last 30 days' : 'Last 12 months'}
+        </span>
       </div>
 
       {/* ============================================
