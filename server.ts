@@ -1,10 +1,15 @@
 // Load environment variables from .env BEFORE any other imports that read them.
 // This must be the first import so process.env.MONGODB_URI etc. are populated
 // when src/lib/mongodb.ts is loaded.
+// On Vercel, env vars are set by the platform, so this is a no-op.
 import 'dotenv/config';
 import express, { Express } from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
+// NOTE: 'vite' is imported LAZILY inside startServer() below, NOT at the top
+// level. This is critical for Vercel — a static `import { ... } from 'vite'`
+// would load the entire Vite module when api/index.ts imports server.ts,
+// crashing the serverless function on startup (vite is a dev-time dependency
+// with Node.js APIs that aren't available in the serverless runtime).
 import {
   INITIAL_CATEGORIES,
   INITIAL_PRODUCTS,
@@ -1367,7 +1372,13 @@ async function startServer() {
   // ----------------------------------------------------
   // VITE MIDDLEWARE (DEV) / STATIC HANDLER (PROD)
   // ----------------------------------------------------
+  // The vite import is DYNAMIC (lazy) so it's only loaded in local dev.
+  // On Vercel, startServer() is never called (the `if (!process.env.VERCEL)`
+  // guard below prevents it), so vite is never loaded on the serverless
+  // function. This is critical — a static top-level `import 'vite'` would
+  // crash the Vercel function on startup.
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
