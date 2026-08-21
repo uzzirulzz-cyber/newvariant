@@ -53,9 +53,9 @@ export const G2GConnectorView: React.FC = () => {
             <Server className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-bold text-white font-display">
-                G2G Digital Sourcing & Sync Engine
+                PlayBeat × G2G Sourcing Engine
               </h2>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
                 g2gSettings.status === 'connected' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'

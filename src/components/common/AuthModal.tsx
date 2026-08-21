@@ -20,7 +20,7 @@ const COUNTRIES = [
 type Mode = 'login' | 'signup' | 'forgot' | 'reset';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, addToast, authMode } = useStore();
+  const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, addToast, authMode, setIsCustomerPortalOpen } = useStore();
 
   const [mode, setMode] = useState<Mode>('login');
 
@@ -126,6 +126,11 @@ export const AuthModal: React.FC = () => {
           useAuthStore.setState({ currentUser: data.user, token: data.token, isAuthenticated: true });
           addToast('success', mode === 'login' ? 'Logged In' : 'Account Created', `Welcome, ${data.user.name}!`);
           handleClose();
+          // After signup, auto-open the customer profile so the user sees
+          // their complete detailed profile immediately.
+          if (mode === 'signup') {
+            setTimeout(() => setIsCustomerPortalOpen(true), 800);
+          }
         } else if (mode === 'forgot') {
           // Show the reset token (in production this would be emailed)
           if (data.resetToken) {
