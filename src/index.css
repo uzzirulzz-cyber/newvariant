@@ -696,13 +696,14 @@
 }
 
 /* ============================================
-   GLOSSY PILL BUTTONS (jelly/gel style)
-   Inspired by high-polish CTA kit design:
-   - Diagonal gradient fills
-   - Specular highlight (::before pseudo)
-   - Chromatic drop shadows
-   - Inner border for glass edge
-   - Hover: scale + intensify glow
+   PREMIUM GLOSSY PILL BUTTONS v2
+   "Glassmorphism-meets-Neumorphism" CTA style
+   - Vertical gradient fills (top-to-bottom, 180deg)
+   - Strong specular highlight at top (top 20%)
+   - Deep chromatic drop shadow + ambient glow
+   - Light rim border (rgba white 0.4)
+   - Hover: translateY(-2px) + intensified glow
+   - Active: translateY(1px) + reduced shadow
    ============================================ */
 
 .btn-glossy {
@@ -713,12 +714,12 @@
   gap: 0.5rem;
   padding: 0.625rem 1.5rem;
   border-radius: 9999px;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.75rem;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
@@ -726,137 +727,172 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Specular highlight — diagonal white sheen on top third */
+/* Strong specular highlight — top 20% bright white sheen (glass look) */
 .btn-glossy::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, transparent 50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 100%);
   pointer-events: none;
-  border-radius: inherit;
+  border-radius: 9999px 9999px 0 0;
 }
 
 .btn-glossy:hover {
-  transform: scale(1.04);
+  transform: translateY(-2px);
 }
 
 .btn-glossy:active {
-  transform: scale(0.98);
+  transform: translateY(1px);
 }
 
-/* Color variants — each has its own gradient + chromatic shadow */
+/* ============================================
+   COLOR VARIANTS — each unique, premium
+   Vertical gradient (180deg): lighter top → deeper bottom
+   Each has: deep chromatic drop shadow + ambient glow
+   ============================================ */
 
+/* Royal Blue — primary action */
 .btn-glossy-blue {
-  background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
-  box-shadow: 0 4px 20px -2px rgba(59, 130, 246, 0.5),
-              0 2px 8px -1px rgba(37, 99, 235, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #4D94FF 0%, #0055DD 100%);
+  box-shadow: 0 10px 25px rgba(0, 51, 204, 0.4),
+              0 0 20px rgba(77, 148, 255, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(153, 204, 255, 0.5);
 }
 .btn-glossy-blue:hover {
-  box-shadow: 0 8px 30px -4px rgba(59, 130, 246, 0.7),
-              0 4px 12px -2px rgba(37, 99, 235, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 35px rgba(0, 51, 204, 0.5),
+              0 0 30px rgba(77, 148, 255, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
+/* Deep Indigo / Navy — download / secondary */
 .btn-glossy-indigo {
-  background: linear-gradient(135deg, #1E1B4B 0%, #3730A3 100%);
-  box-shadow: 0 4px 20px -2px rgba(67, 56, 202, 0.5),
-              0 2px 8px -1px rgba(30, 27, 75, 0.4),
+  background: linear-gradient(180deg, #312E81 0%, #1E1B4B 100%);
+  box-shadow: 0 10px 25px rgba(30, 27, 75, 0.5),
+              0 0 20px rgba(67, 56, 202, 0.3),
               inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 .btn-glossy-indigo:hover {
-  box-shadow: 0 8px 30px -4px rgba(67, 56, 202, 0.7),
+  box-shadow: 0 14px 35px rgba(30, 27, 75, 0.6),
+              0 0 30px rgba(67, 56, 202, 0.4),
               inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+/* Hot Pink / Magenta — buy now / urgent */
 .btn-glossy-pink {
-  background: linear-gradient(135deg, #DB2777 0%, #F472B6 100%);
-  box-shadow: 0 4px 20px -2px rgba(236, 72, 153, 0.5),
-              0 2px 8px -1px rgba(219, 39, 119, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #F472B6 0%, #DB2777 100%);
+  box-shadow: 0 10px 25px rgba(219, 39, 119, 0.4),
+              0 0 20px rgba(236, 72, 153, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(251, 207, 232, 0.4);
 }
 .btn-glossy-pink:hover {
-  box-shadow: 0 8px 30px -4px rgba(236, 72, 153, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 35px rgba(219, 39, 119, 0.5),
+              0 0 30px rgba(236, 72, 153, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Charcoal / Black — ghost / dark */
 .btn-glossy-dark {
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-  box-shadow: 0 4px 20px -2px rgba(51, 65, 85, 0.5),
-              0 2px 8px -1px rgba(15, 23, 42, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.5),
+              0 0 20px rgba(51, 65, 85, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-color: rgba(100, 116, 139, 0.3);
 }
 .btn-glossy-dark:hover {
-  box-shadow: 0 8px 30px -4px rgba(51, 65, 85, 0.7),
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.6),
+              0 0 30px rgba(51, 65, 85, 0.3),
               inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* Emerald Green — contact / success */
 .btn-glossy-emerald {
-  background: linear-gradient(135deg, #047857 0%, #34D399 100%);
-  box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.5),
-              0 2px 8px -1px rgba(4, 120, 87, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #34D399 0%, #047857 100%);
+  box-shadow: 0 10px 25px rgba(4, 120, 87, 0.4),
+              0 0 20px rgba(16, 185, 129, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(167, 243, 208, 0.4);
 }
 .btn-glossy-emerald:hover {
-  box-shadow: 0 8px 30px -4px rgba(16, 185, 129, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 35px rgba(4, 120, 87, 0.5),
+              0 0 30px rgba(16, 185, 129, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Warm Orange — read more / attention */
 .btn-glossy-orange {
-  background: linear-gradient(135deg, #EA580C 0%, #FB923C 100%);
-  box-shadow: 0 4px 20px -2px rgba(249, 115, 22, 0.5),
-              0 2px 8px -1px rgba(234, 88, 12, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #FB923C 0%, #EA580C 100%);
+  box-shadow: 0 10px 25px rgba(234, 88, 12, 0.4),
+              0 0 20px rgba(249, 115, 22, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(254, 215, 170, 0.4);
 }
 .btn-glossy-orange:hover {
-  box-shadow: 0 8px 30px -4px rgba(249, 115, 22, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 35px rgba(234, 88, 12, 0.5),
+              0 0 30px rgba(249, 115, 22, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Vivid Purple — learn more / expand */
 .btn-glossy-purple {
-  background: linear-gradient(135deg, #7E22CE 0%, #A855F7 100%);
-  box-shadow: 0 4px 20px -2px rgba(147, 51, 234, 0.5),
-              0 2px 8px -1px rgba(126, 34, 206, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #A855F7 0%, #7E22CE 100%);
+  box-shadow: 0 10px 25px rgba(126, 34, 206, 0.4),
+              0 0 20px rgba(147, 51, 234, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(221, 214, 254, 0.4);
 }
 .btn-glossy-purple:hover {
-  box-shadow: 0 8px 30px -4px rgba(147, 51, 234, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 35px rgba(126, 34, 206, 0.5),
+              0 0 30px rgba(147, 51, 234, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Teal / Turquoise — subscribe */
 .btn-glossy-cyan {
-  background: linear-gradient(135deg, #0891B2 0%, #22D3EE 100%);
-  box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.5),
-              0 2px 8px -1px rgba(8, 145, 178, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #22D3EE 0%, #0891B2 100%);
+  box-shadow: 0 10px 25px rgba(8, 145, 178, 0.4),
+              0 0 20px rgba(6, 182, 212, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(165, 243, 252, 0.4);
 }
 .btn-glossy-cyan:hover {
-  box-shadow: 0 8px 30px -4px rgba(6, 182, 212, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 35px rgba(8, 145, 178, 0.5),
+              0 0 30px rgba(6, 182, 212, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Red-Orange / Vermillion — options / danger */
 .btn-glossy-red {
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
-  box-shadow: 0 4px 20px -2px rgba(239, 68, 68, 0.5),
-              0 2px 8px -1px rgba(220, 38, 38, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #F97316 0%, #DC2626 100%);
+  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.4),
+              0 0 20px rgba(239, 68, 68, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(254, 202, 202, 0.4);
 }
 .btn-glossy-red:hover {
-  box-shadow: 0 8px 30px -4px rgba(239, 68, 68, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 35px rgba(220, 38, 38, 0.5),
+              0 0 30px rgba(239, 68, 68, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* Yellow → Orange (95% yellow, 5% orange) — for Sign Up CTA */
+/* Yellow → Amber (95% yellow, 5% orange) — Sign Up CTA */
 .btn-glossy-yellow {
-  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
-  box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.5),
-              0 2px 8px -1px rgba(252, 211, 77, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  background: linear-gradient(180deg, #FDE047 0%, #F59E0B 100%);
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4),
+              0 0 20px rgba(252, 211, 77, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border-color: rgba(254, 240, 138, 0.5);
   color: #1a1a1a;
 }
 .btn-glossy-yellow:hover {
-  box-shadow: 0 8px 30px -4px rgba(245, 158, 11, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 14px 35px rgba(245, 158, 11, 0.5),
+              0 0 30px rgba(252, 211, 77, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
   color: #000;
 }
 
