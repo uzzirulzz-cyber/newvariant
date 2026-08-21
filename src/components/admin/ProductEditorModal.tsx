@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { Product, ProductType, ProductVariation } from '../../types';
 import {
@@ -13,7 +13,11 @@ import {
   Sparkles,
   ShieldCheck,
   AlertTriangle,
-  Eye
+  Eye,
+  Upload,
+  Image as ImageIcon,
+  Video,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -37,7 +41,71 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({ product,
   const [stock, setStock] = useState(product?.stock || 50);
   const [shortDescription, setShortDescription] = useState(product?.shortDescription || '');
   const [description, setDescription] = useState(product?.description || '');
-  const [imageUrl, setImageUrl] = useState(product?.images[0] || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80');
+
+  // Media: multiple images (upload or URL) + optional video URL
+  const [images, setImages] = useState<string[]>(product?.images || []);
+  const [videoUrl, setVideoUrl] = useState(product?.videoUrl || '');
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle file upload — converts to base64 data URL for local preview
+  // In production this would upload to S3/OSS and store the returned URL.
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file: File) => {
+      // Check file type
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        addToast('error', 'Invalid File', `${file.name} is not an image or video.`);
+        return;
+      }
+      // Check file size (max 10MB for images, 50MB for videos)
+      const maxSize = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        addToast('error', 'File Too Large', `${file.name} exceeds the size limit.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        if (file.type.startsWith('video/')) {
+          setVideoUrl(dataUrl);
+          addToast('success', 'Video Added', `${file.name} uploaded.`);
+        } else {
+          setImages((prev) => [...prev, dataUrl]);
+          addToast('success', 'Image Added', `${file.name} uploaded.`);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  }, [addToast]);
+
+  const handleAddImageUrl = () => {
+    if (!imageUrlInput.trim()) return;
+    // Basic URL validation
+    try {
+      new URL(imageUrlInput);
+    } catch {
+      addToast('error', 'Invalid URL', 'Please enter a valid image URL.');
+      return;
+    }
+    setImages((prev) => [...prev, imageUrlInput.trim()]);
+    setImageUrlInput('');
+    addToast('success', 'Image Added', 'Image URL added to gallery.');
+  };
+
+  const handleRemoveImage = (idx: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoUrl('');
+  };
 
   // Variations list
   const [variations, setVariations] = useState<ProductVariation[]>(product?.variations || [
@@ -138,7 +206,8 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({ product,
       discountPercent: compareAtPrice > price ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100) : 0,
       shortDescription,
       description,
-      images: [imageUrl],
+      images: images.length > 0 ? images : ['https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg'],
+      videoUrl: videoUrl || undefined,
       status: 'published',
       stock: Number(stock),
       lowStockThreshold: 5,
@@ -319,14 +388,105 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({ product,
                 />
               </div>
 
-              <div className="col-span-2 sm:col-span-1">
-                <label className="block text-neutral-300 font-medium mb-1">Image URL</label>
-                <input
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full bg-[#141622] rounded-xl border border-white/10 px-3 py-2 text-xs text-white font-mono"
-                />
+              {/* Media upload — images + video */}
+              <div className="col-span-2 sm:col-span-2">
+                <label className="block text-neutral-300 font-medium mb-2 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Product Images & Video</span>
+                </label>
+
+                {/* Upload drop zone */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-white/15 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all"
+                >
+                  <Upload className="w-6 h-6 text-gray-500 mx-auto mb-2" />
+                  <div className="text-xs text-gray-400">Click to upload images or video</div>
+                  <div className="text-[10px] text-gray-600 mt-1">PNG, JPG, WebP (max 10MB) · MP4, WebM (max 50MB)</div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* URL input for external images */}
+                <div className="flex gap-2 mt-2">
+                  <div className="relative flex-1">
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+                    <input
+                      type="text"
+                      value={imageUrlInput}
+                      onChange={(e) => setImageUrlInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl(); } }}
+                      placeholder="Paste image URL..."
+                      className="w-full bg-[#141622] rounded-xl border border-white/10 pl-8 pr-3 py-1.5 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-emerald-500/40"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddImageUrl}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Add URL
+                  </button>
+                </div>
+
+                {/* Image gallery */}
+                {images.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-[10px] uppercase text-gray-500 tracking-wider font-mono mb-2">
+                      Images ({images.length})
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {images.map((img, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-white/10 bg-black">
+                          <img src={img} alt={`Product image ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="absolute top-1 right-1 p-1 rounded-md bg-black/70 text-red-400 hover:bg-red-500/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Remove image"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                          {idx === 0 && (
+                            <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-emerald-500/90 text-black text-[8px] font-bold uppercase">
+                              Primary
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Video preview */}
+                {videoUrl && (
+                  <div className="mt-3">
+                    <div className="text-[10px] uppercase text-gray-500 tracking-wider font-mono mb-2 flex items-center gap-1">
+                      <Video className="w-3 h-3 text-purple-400" /> Product Video
+                    </div>
+                    <div className="relative rounded-lg overflow-hidden border border-white/10 bg-black">
+                      {videoUrl.startsWith('data:video') || videoUrl.startsWith('blob:') ? (
+                        <video src={videoUrl} controls className="w-full max-h-48 object-contain" />
+                      ) : (
+                        <iframe src={videoUrl} className="w-full h-48" title="Product video" allowFullScreen />
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleRemoveVideo}
+                        className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 text-red-400 hover:bg-red-500/80 hover:text-white"
+                        aria-label="Remove video"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
