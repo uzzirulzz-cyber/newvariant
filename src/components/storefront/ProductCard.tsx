@@ -329,7 +329,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
           <button
             onClick={handleAddToCart}
             disabled={stockState === 'out'}
-            className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg btn-primary text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+            className="btn-glossy btn-glossy-emerald btn-glossy-sm w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
             <span>{inCart ? 'Add More' : 'Add to Cart'}</span>
@@ -337,7 +337,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, compact = fal
           <button
             onClick={handleQuickView}
             aria-label="Quick view"
-            className="px-3 py-2.5 rounded-lg btn-secondary text-[11px] font-bold flex items-center justify-center"
+            className="btn-glossy btn-glossy-cyan btn-glossy-sm flex items-center justify-center"
           >
             <ArrowRight className="w-3.5 h-3.5" />
           </button>

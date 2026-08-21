@@ -58,7 +58,7 @@ export const SmartProjectorShowcase: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsCompareModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-secondary text-xs font-mono text-slate-300 hover:text-white"
+              className="btn-glossy btn-glossy-purple btn-glossy-sm"
             >
               <Scale className="w-4 h-4 text-[#1769FF]" />
               <span>Compare Specs ({compareList.length})</span>

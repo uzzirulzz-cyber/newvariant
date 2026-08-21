@@ -339,7 +339,7 @@ export const CartDrawer: React.FC = () => {
                       setIsCartOpen(false);
                       setIsCheckoutOpen(true);
                     }}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white text-sm font-bold font-display flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 transition-all hover:scale-[1.01]"
+                    className="btn-glossy btn-glossy-yellow w-full flex items-center justify-center gap-2"
                   >
                     <Lock className="w-4 h-4" />
                     <span>Proceed to Secure Checkout</span>

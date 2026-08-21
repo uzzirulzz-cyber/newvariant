@@ -76,7 +76,7 @@ export const HeroSection: React.FC = () => {
                   const el = document.getElementById('catalog');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="px-6 py-2.5 rounded-full btn-primary text-xs font-bold uppercase tracking-widest shrink-0"
+                className="btn-glossy btn-glossy-blue btn-glossy-sm shrink-0"
               >
                 Search
               </button>
