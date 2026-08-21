@@ -18,28 +18,18 @@ import {
 import { Product, Order, User, G2GSupplierConnector, ContentSection, Coupon, AdminLog, ImportJob } from './src/types';
 import { processSmartProductImport, RawImportItem } from './src/utils/smartImportEngine';
 import { deduplicateVariations } from './src/utils/variantProtection';
-
-// In-Memory Database Storage
-let dbCategories = [...INITIAL_CATEGORIES];
-let dbProducts: Product[] = [...INITIAL_PRODUCTS];
-let dbUsers: User[] = [...INITIAL_USERS];
-let dbOrders: Order[] = [...INITIAL_ORDERS];
-let dbG2GConnector: G2GSupplierConnector = { ...INITIAL_G2G_CONNECTOR };
-let dbContent: ContentSection = { ...INITIAL_CONTENT };
-let dbCoupons: Coupon[] = [...INITIAL_COUPONS];
-let dbAdminLogs: AdminLog[] = [...INITIAL_ADMIN_LOGS];
-let dbImportJobs: ImportJob[] = [];
+import * as repo from './src/lib/repository';
 
 /**
  * Create the Express app with all API routes registered.
  *
+ * Data access goes through the repository layer (src/lib/repository.ts),
+ * which transparently uses MongoDB Atlas when MONGODB_URI is configured,
+ * or falls back to in-memory arrays seeded from mockData for local dev.
+ *
  * This is extracted from startServer() so it can be reused by:
  *  - server.ts (dev): adds Vite middleware + app.listen()
  *  - api/index.ts (Vercel serverless): exports the app directly
- *
- * IMPORTANT: Each call returns a fresh app instance with fresh in-memory state.
- * On Vercel, every cold start calls this once and the in-memory state lives
- * for the lifetime of that serverless instance (until it's recycled).
  */
 export function createApiApp(): Express {
   const app = express();
@@ -104,9 +94,9 @@ export function createApiApp(): Express {
   // ----------------------------------------------------
   // PRODUCTS API
   // ----------------------------------------------------
-  app.get('/api/products', (req, res) => {
+  app.get('/api/products', async (req, res) => {
     const { category, type, search, sort, status, featured, trending, deal } = req.query;
-    let list = [...dbProducts];
+    let list = await repo.getProducts();
 
     if (status) {
       list = list.filter(p => p.status === status);
@@ -166,16 +156,16 @@ export function createApiApp(): Express {
     res.json({ products: list, total: list.length });
   });
 
-  app.get('/api/products/:idOrSlug', (req, res) => {
+  app.get('/api/products/:idOrSlug', async (req, res) => {
     const param = req.params.idOrSlug;
-    const product = dbProducts.find(p => p.id === param || p.slug === param);
+    const product = await repo.getProductByIdOrSlug(param);
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
     res.json({ product });
   });
 
-  app.post('/api/products', (req, res) => {
+  app.post('/api/products', async (req, res) => {
     const raw = req.body as Product;
     if (!raw.title || !raw.categoryId) {
       return res.status(400).json({ error: 'Title and category are required' });
@@ -197,9 +187,9 @@ export function createApiApp(): Express {
       updatedAt: new Date().toISOString()
     };
 
-    dbProducts.unshift(newProduct);
+    await repo.createProduct(newProduct);
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
@@ -213,15 +203,15 @@ export function createApiApp(): Express {
     res.status(201).json({ product: newProduct, deduplicationInfo: dedupeResult });
   });
 
-  app.put('/api/products/:id', (req, res) => {
+  app.put('/api/products/:id', async (req, res) => {
     const id = req.params.id;
-    const index = dbProducts.findIndex(p => p.id === id);
-    if (index === -1) {
+    const existing = await repo.getProductByIdOrSlug(id);
+    if (!existing) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
     const updates = req.body;
-    let cleanVars = dbProducts[index].variations;
+    let cleanVars = existing.variations;
     let dedupeResult = null;
 
     if (updates.variations) {
@@ -229,38 +219,37 @@ export function createApiApp(): Express {
       cleanVars = dedupeResult.cleanVariations;
     }
 
-    dbProducts[index] = {
-      ...dbProducts[index],
+    const updatedProduct = await repo.updateProduct(id, {
       ...updates,
       variations: cleanVars,
-      stock: cleanVars.length > 0 ? cleanVars.reduce((sum, v) => sum + v.stock, 0) : (updates.stock ?? dbProducts[index].stock),
+      stock: cleanVars.length > 0 ? cleanVars.reduce((sum, v) => sum + v.stock, 0) : (updates.stock ?? existing.stock),
       updatedAt: new Date().toISOString()
-    };
+    });
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
       action: 'Product Modified',
       targetType: 'product',
       targetId: id,
-      details: `Updated fields for "${dbProducts[index].title}"`,
+      details: `Updated fields for "${updatedProduct?.title || existing.title}"`,
       timestamp: new Date().toISOString()
     });
 
-    res.json({ product: dbProducts[index], deduplicationInfo: dedupeResult });
+    res.json({ product: updatedProduct, deduplicationInfo: dedupeResult });
   });
 
-  app.delete('/api/products/:id', (req, res) => {
+  app.delete('/api/products/:id', async (req, res) => {
     const id = req.params.id;
-    const item = dbProducts.find(p => p.id === id);
+    const item = await repo.getProductByIdOrSlug(id);
     if (!item) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    dbProducts = dbProducts.filter(p => p.id !== id);
+    await repo.deleteProduct(id);
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
@@ -275,16 +264,13 @@ export function createApiApp(): Express {
   });
 
   // Bulk Product Updates
-  app.post('/api/products/bulk-update', (req, res) => {
+  app.post('/api/products/bulk-update', async (req, res) => {
     const { productIds, action, value } = req.body;
     if (!Array.isArray(productIds)) {
       return res.status(400).json({ error: 'productIds array required' });
     }
 
-    let modifiedCount = 0;
-    dbProducts = dbProducts.map(p => {
-      if (!productIds.includes(p.id)) return p;
-      modifiedCount++;
+    const modifiedCount = await repo.bulkUpdateProducts(productIds, (p) => {
       if (action === 'set_status') {
         return { ...p, status: value, updatedAt: new Date().toISOString() };
       }
@@ -305,7 +291,7 @@ export function createApiApp(): Express {
       return p;
     });
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
@@ -321,31 +307,33 @@ export function createApiApp(): Express {
   // ----------------------------------------------------
   // CATEGORIES API
   // ----------------------------------------------------
-  app.get('/api/categories', (req, res) => {
-    res.json({ categories: dbCategories });
+  app.get('/api/categories', async (req, res) => {
+    const categories = await repo.getCategories();
+    res.json({ categories });
   });
 
-  app.post('/api/categories', (req, res) => {
+  app.post('/api/categories', async (req, res) => {
     const newCat = req.body;
     if (!newCat.name || !newCat.slug) {
       return res.status(400).json({ error: 'Name and slug are required' });
     }
+    const categories = await repo.getCategories();
     const cat = {
       ...newCat,
       id: newCat.id || newCat.slug,
       productCount: 0,
-      displayOrder: dbCategories.length + 1
+      displayOrder: categories.length + 1
     };
-    dbCategories.push(cat);
+    await repo.createCategory(cat);
     res.status(201).json({ category: cat });
   });
 
   // ----------------------------------------------------
   // SMART PROJECTOR COMPARISON API
   // ----------------------------------------------------
-  app.get('/api/projectors/compare', (req, res) => {
+  app.get('/api/projectors/compare', async (req, res) => {
     const { ids } = req.query;
-    let projectors = dbProducts.filter(p => p.productType === 'physical_projector');
+    let projectors = (await repo.getProducts()).filter(p => p.productType === 'physical_projector');
     if (ids && typeof ids === 'string') {
       const idList = ids.split(',');
       projectors = projectors.filter(p => idList.includes(p.id) || idList.includes(p.slug));
@@ -356,22 +344,21 @@ export function createApiApp(): Express {
   // ----------------------------------------------------
   // G2G / SMART PRODUCT IMPORT ENGINE API
   // ----------------------------------------------------
-  app.get('/api/import/g2g-connector', (req, res) => {
-    res.json({ connector: dbG2GConnector });
+  app.get('/api/import/g2g-connector', async (req, res) => {
+    const connector = await repo.getG2GConnector();
+    res.json({ connector });
   });
 
-  app.put('/api/import/g2g-connector', (req, res) => {
-    dbG2GConnector = {
-      ...dbG2GConnector,
-      ...req.body,
-      lastSync: new Date().toISOString()
-    };
-    res.json({ connector: dbG2GConnector });
+  app.put('/api/import/g2g-connector', async (req, res) => {
+    const connector = await repo.updateG2GConnector(req.body);
+    res.json({ connector });
   });
 
   // Authorized G2G Live/Simulated Catalog Sync
-  app.post('/api/import/g2g-sync', (req, res) => {
-    const { markupType = dbG2GConnector.markupType, markupValue = dbG2GConnector.markupValue, autoApprove = false } = req.body;
+  app.post('/api/import/g2g-sync', async (req, res) => {
+    const connector = await repo.getG2GConnector();
+    const { markupType = connector.markupType, markupValue = connector.markupValue, autoApprove = false } = req.body;
+    const allProducts = await repo.getProducts();
 
     // Authorized feed items simulation compliant with G2G partner schema
     const authorizedG2GFeed: RawImportItem[] = [
@@ -424,19 +411,19 @@ export function createApiApp(): Express {
       }
     ];
 
-    const result = processSmartProductImport(authorizedG2GFeed, dbProducts, {
-      connector: dbG2GConnector,
+    const result = processSmartProductImport(authorizedG2GFeed, allProducts, {
+      connector,
       markupType,
       markupValue,
       autoApprove
     });
 
     // Add imported products into catalog
-    dbProducts = [...result.importedProducts, ...dbProducts];
-    dbImportJobs.unshift(result.importJob);
-    dbG2GConnector.lastSync = new Date().toISOString();
+    await repo.addProducts(result.importedProducts);
+    await repo.createImportJob(result.importJob);
+    await repo.updateG2GConnector({ lastSync: new Date().toISOString() });
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
@@ -455,23 +442,24 @@ export function createApiApp(): Express {
   });
 
   // CSV / Custom Supplier Batch Upload
-  app.post('/api/import/batch', (req, res) => {
+  app.post('/api/import/batch', async (req, res) => {
     const { items, markupType = 'percentage', markupValue = 20, autoApprove = false, categoryId } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'items array is required' });
     }
 
-    const result = processSmartProductImport(items as RawImportItem[], dbProducts, {
+    const allProducts = await repo.getProducts();
+    const result = processSmartProductImport(items as RawImportItem[], allProducts, {
       markupType,
       markupValue,
       autoApprove,
       defaultCategoryId: categoryId
     });
 
-    dbProducts = [...result.importedProducts, ...dbProducts];
-    dbImportJobs.unshift(result.importJob);
+    await repo.addProducts(result.importedProducts);
+    await repo.createImportJob(result.importJob);
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
@@ -489,39 +477,38 @@ export function createApiApp(): Express {
     });
   });
 
-  app.get('/api/import/jobs', (req, res) => {
-    res.json({ jobs: dbImportJobs });
+  app.get('/api/import/jobs', async (req, res) => {
+    const jobs = await repo.getImportJobs();
+    res.json({ jobs });
   });
 
-  app.post('/api/import/approve/:productId', (req, res) => {
+  app.post('/api/import/approve/:productId', async (req, res) => {
     const id = req.params.productId;
-    const index = dbProducts.findIndex(p => p.id === id);
-    if (index === -1) {
+    const product = await repo.updateProduct(id, { status: 'published' });
+    if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    dbProducts[index].status = 'published';
-    dbProducts[index].updatedAt = new Date().toISOString();
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
       action: 'Product Approved',
       targetType: 'product',
       targetId: id,
-      details: `Approved & published product "${dbProducts[index].title}"`,
+      details: `Approved & published product "${product.title}"`,
       timestamp: new Date().toISOString()
     });
 
-    res.json({ success: true, product: dbProducts[index] });
+    res.json({ success: true, product });
   });
 
   // ----------------------------------------------------
   // ORDERS & CHECKOUT API
   // ----------------------------------------------------
-  app.get('/api/orders', (req, res) => {
+  app.get('/api/orders', async (req, res) => {
     const { customerEmail, status } = req.query;
-    let list = [...dbOrders];
+    let list = await repo.getOrders();
     if (customerEmail && typeof customerEmail === 'string') {
       list = list.filter(o => o.customerEmail.toLowerCase() === customerEmail.toLowerCase());
     }
@@ -531,15 +518,15 @@ export function createApiApp(): Express {
     res.json({ orders: list, total: list.length });
   });
 
-  app.get('/api/orders/:id', (req, res) => {
-    const order = dbOrders.find(o => o.id === req.params.id || o.orderNumber === req.params.id);
+  app.get('/api/orders/:id', async (req, res) => {
+    const order = await repo.getOrderById(req.params.id);
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
     res.json({ order });
   });
 
-  app.post('/api/checkout', (req, res) => {
+  app.post('/api/checkout', async (req, res) => {
     const {
       customerId,
       customerName,
@@ -556,10 +543,13 @@ export function createApiApp(): Express {
       return res.status(400).json({ error: 'Customer email and cart items are required' });
     }
 
+    // Load all products once for cart item lookup
+    const allProducts = await repo.getProducts();
+
     let subtotal = 0;
     let hasPhysical = false;
     const fulfilledItems = cartItems.map((item: any) => {
-      const product = dbProducts.find(p => p.id === item.productId);
+      const product = allProducts.find(p => p.id === item.productId);
       const unitPrice = item.unitPrice || product?.price || 19.99;
       const qty = item.quantity || 1;
       const itemSubtotal = unitPrice * qty;
@@ -612,14 +602,14 @@ export function createApiApp(): Express {
 
     let discount = 0;
     if (couponCode) {
-      const coupon = dbCoupons.find(c => c.code.toUpperCase() === couponCode.toUpperCase() && c.isActive);
-      if (coupon && subtotal >= coupon.minPurchase) {
+      const coupon = await repo.findCouponByCode(couponCode);
+      if (coupon && coupon.isActive && subtotal >= (coupon.minPurchase || 0)) {
         if (coupon.discountType === 'percentage') {
           discount = Math.min(coupon.maxDiscount || Infinity, (subtotal * coupon.discountValue) / 100);
         } else {
           discount = coupon.discountValue;
         }
-        coupon.usageCount++;
+        await repo.incrementCouponUsage(couponCode);
       }
     }
 
@@ -655,16 +645,18 @@ export function createApiApp(): Express {
       updatedAt: new Date().toISOString()
     };
 
-    dbOrders.unshift(newOrder);
+    await repo.createOrder(newOrder);
 
     // Update customer spending stats if registered
-    const userIndex = dbUsers.findIndex(u => u.email.toLowerCase() === customerEmail.toLowerCase());
-    if (userIndex !== -1) {
-      dbUsers[userIndex].totalSpent += total;
-      dbUsers[userIndex].ordersCount += 1;
+    const user = await repo.findUserByEmail(customerEmail);
+    if (user) {
+      await repo.updateUserByEmail(customerEmail, {
+        totalSpent: user.totalSpent + total,
+        ordersCount: user.ordersCount + 1,
+      });
     }
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'System Gateway',
       adminEmail: 'system@playbeat.digital',
@@ -683,19 +675,19 @@ export function createApiApp(): Express {
   });
 
   // Resend digital keys
-  app.post('/api/orders/:id/resend-digital', (req, res) => {
-    const order = dbOrders.find(o => o.id === req.params.id);
+  app.post('/api/orders/:id/resend-digital', async (req, res) => {
+    const order = await repo.getOrderById(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     res.json({ success: true, message: `Digital delivery data dispatched to ${order.customerEmail}` });
   });
 
   // Update physical shipment tracking
-  app.post('/api/orders/:id/shipment', (req, res) => {
+  app.post('/api/orders/:id/shipment', async (req, res) => {
     const { trackingNumber, carrier, status } = req.body;
-    const order = dbOrders.find(o => o.id === req.params.id);
+    const order = await repo.getOrderById(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
-    order.items = order.items.map(item => {
+    const updatedItems = order.items.map(item => {
       if (item.productType === 'physical_projector') {
         return {
           ...item,
@@ -710,11 +702,14 @@ export function createApiApp(): Express {
       return item;
     });
 
-    order.deliveryStatus = status === 'delivered' ? 'delivered' : 'in_transit';
-    order.fulfillmentStatus = 'shipped_physical';
-    order.updatedAt = new Date().toISOString();
+    const updatedOrder = await repo.updateOrder(order.id, {
+      items: updatedItems,
+      deliveryStatus: status === 'delivered' ? 'delivered' : 'in_transit',
+      fulfillmentStatus: 'shipped_physical',
+      updatedAt: new Date().toISOString(),
+    });
 
-    dbAdminLogs.unshift({
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
@@ -725,20 +720,26 @@ export function createApiApp(): Express {
       timestamp: new Date().toISOString()
     });
 
-    res.json({ success: true, order });
+    res.json({ success: true, order: updatedOrder });
   });
 
   // ----------------------------------------------------
   // ADMIN ANALYTICS & STATS
   // ----------------------------------------------------
-  app.get('/api/admin/metrics', (req, res) => {
-    const totalRevenue = dbOrders.reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.total : 0), 0);
-    const totalOrders = dbOrders.length;
-    const totalCustomers = dbUsers.length + 185; // Active registered base
-    const totalProducts = dbProducts.length;
-    const digitalDeliveriesCount = dbOrders.reduce((sum, o) => sum + o.items.filter(i => i.productType === 'digital').length, 0);
-    const physicalShipmentsCount = dbOrders.reduce((sum, o) => sum + o.items.filter(i => i.productType === 'physical_projector').length, 0);
-    const lowStockCount = dbProducts.filter(p => p.stock <= p.lowStockThreshold).length;
+  app.get('/api/admin/metrics', async (req, res) => {
+    const [orders, users, products] = await Promise.all([
+      repo.getOrders(),
+      repo.getUsers(),
+      repo.getProducts(),
+    ]);
+
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.total : 0), 0);
+    const totalOrders = orders.length;
+    const totalCustomers = users.length + 185; // Active registered base
+    const totalProducts = products.length;
+    const digitalDeliveriesCount = orders.reduce((sum, o) => sum + o.items.filter(i => i.productType === 'digital').length, 0);
+    const physicalShipmentsCount = orders.reduce((sum, o) => sum + o.items.filter(i => i.productType === 'physical_projector').length, 0);
+    const lowStockCount = products.filter(p => p.stock <= p.lowStockThreshold).length;
 
     // Monthly chart mock
     const revenueTrend = [
@@ -777,20 +778,22 @@ export function createApiApp(): Express {
     });
   });
 
-  app.get('/api/admin/logs', (req, res) => {
-    res.json({ logs: dbAdminLogs });
+  app.get('/api/admin/logs', async (req, res) => {
+    const logs = await repo.getAdminLogs();
+    res.json({ logs });
   });
 
   // ----------------------------------------------------
   // CONTENT BUILDER API
   // ----------------------------------------------------
-  app.get('/api/content', (req, res) => {
-    res.json({ content: dbContent });
+  app.get('/api/content', async (req, res) => {
+    const content = await repo.getContent();
+    res.json({ content });
   });
 
-  app.put('/api/content', (req, res) => {
-    dbContent = { ...dbContent, ...req.body };
-    dbAdminLogs.unshift({
+  app.put('/api/content', async (req, res) => {
+    const content = await repo.updateContent(req.body);
+    await repo.createAdminLog({
       id: `log-${Date.now()}`,
       adminName: 'PlayBeat Admin',
       adminEmail: 'admin@playbeat.digital',
@@ -799,24 +802,25 @@ export function createApiApp(): Express {
       details: 'Updated storefront homepage banners and announcement configuration',
       timestamp: new Date().toISOString()
     });
-    res.json({ content: dbContent });
+    res.json({ content });
   });
 
   // ----------------------------------------------------
   // COUPONS API
   // ----------------------------------------------------
-  app.get('/api/coupons', (req, res) => {
-    res.json({ coupons: dbCoupons });
+  app.get('/api/coupons', async (req, res) => {
+    const coupons = await repo.getCoupons();
+    res.json({ coupons });
   });
 
-  app.post('/api/coupons/validate', (req, res) => {
+  app.post('/api/coupons/validate', async (req, res) => {
     const { code, cartAmount } = req.body;
     if (!code) return res.status(400).json({ valid: false, message: 'Code is required' });
-    const coupon = dbCoupons.find(c => c.code.toUpperCase() === code.toUpperCase() && c.isActive);
-    if (!coupon) {
+    const coupon = await repo.findCouponByCode(code);
+    if (!coupon || !coupon.isActive) {
       return res.status(404).json({ valid: false, message: 'Invalid or expired coupon code' });
     }
-    if (cartAmount < coupon.minPurchase) {
+    if (cartAmount < (coupon.minPurchase || 0)) {
       return res.status(400).json({ valid: false, message: `Minimum purchase of $${coupon.minPurchase} required` });
     }
     let discount = 0;
@@ -832,9 +836,9 @@ export function createApiApp(): Express {
   // ----------------------------------------------------
   // AUTH API
   // ----------------------------------------------------
-  app.post('/api/auth/login', (req, res) => {
+  app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
-    const user = dbUsers.find(u => u.email.toLowerCase() === email?.toLowerCase());
+    const user = await repo.findUserByEmail(email || '');
     if (user) {
       return res.json({
         success: true,
@@ -856,7 +860,7 @@ export function createApiApp(): Express {
       status: 'active',
       createdAt: new Date().toISOString()
     };
-    dbUsers.push(newUser);
+    await repo.createUser(newUser);
     res.json({
       success: true,
       user: newUser,

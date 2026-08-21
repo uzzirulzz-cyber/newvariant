@@ -1,0 +1,553 @@
+/**
+ * Data access layer for PlayBeat.
+ *
+ * Design:
+ *  - When MONGODB_URI is configured (production/Vercel), all reads/writes go to
+ *    MongoDB Atlas collections. Data persists across server restarts and is
+ *    shared across serverless instances.
+ *  - When MONGODB_URI is NOT configured (local dev without Atlas), the
+ *    repository falls back to in-memory arrays seeded from mockData. This
+ *    keeps local dev working with zero setup.
+ *
+ * Collections used:
+ *   products, categories, users, orders, coupons, content, admin_logs,
+ *   g2g_connector, import_jobs
+ *
+ * Seeding:
+ *   On first connection, if collections are empty, the repository auto-seeds
+ *   from mockData so the app has data on first deploy.
+ */
+
+import { getDb, isMongoConfigured } from './mongodb';
+import {
+  INITIAL_CATEGORIES,
+  INITIAL_PRODUCTS,
+  INITIAL_USERS,
+  INITIAL_ORDERS,
+  INITIAL_G2G_CONNECTOR,
+  INITIAL_CONTENT,
+  INITIAL_COUPONS,
+  INITIAL_ADMIN_LOGS,
+} from '../data/mockData';
+import type {
+  Product, Category, User, Order, Coupon, AdminLog,
+  G2GSupplierConnector, ContentSection, ImportJob, OrderStatus,
+} from '../types';
+
+// ============================================================
+// In-memory fallback state (used when MongoDB is not configured)
+// ============================================================
+let memProducts: Product[] = [...INITIAL_PRODUCTS];
+let memCategories: Category[] = [...INITIAL_CATEGORIES];
+let memUsers: User[] = [...INITIAL_USERS];
+let memOrders: Order[] = [...INITIAL_ORDERS];
+let memCoupons: Coupon[] = [...INITIAL_COUPONS];
+let memAdminLogs: AdminLog[] = [...INITIAL_ADMIN_LOGS];
+let memImportJobs: ImportJob[] = [];
+let memG2GConnector: G2GSupplierConnector = { ...INITIAL_G2G_CONNECTOR };
+let memContent: ContentSection = { ...INITIAL_CONTENT };
+
+// ============================================================
+// Seeding — populates MongoDB on first boot if collections are empty
+// ============================================================
+let seedPromise: Promise<void> | null = null;
+
+async function seedIfEmpty(): Promise<void> {
+  if (!isMongoConfigured) return;
+  if (seedPromise) return seedPromise;
+
+  seedPromise = (async () => {
+    try {
+      const db = await getDb();
+
+      // Check products first — if they exist, the DB was already seeded
+      const productsCount = await db.collection('products').countDocuments();
+      if (productsCount > 0) {
+        console.info('[repository] MongoDB already has data — skipping seed.');
+        return;
+      }
+      console.info('[repository] Seeding MongoDB from mock data (using upsert to handle partial seeds)...');
+
+      // Use upsert instead of insertMany so we don't crash on duplicate keys
+      // if some collections were partially seeded from a previous run.
+      const now = new Date().toISOString();
+
+      const productOps = INITIAL_PRODUCTS.map(p => ({
+        replaceOne: { filter: { id: p.id }, replacement: { ...p, _seededAt: now }, upsert: true }
+      }));
+      const categoryOps = INITIAL_CATEGORIES.map(c => ({
+        replaceOne: { filter: { id: c.id }, replacement: { ...c, _seededAt: now }, upsert: true }
+      }));
+      const userOps = INITIAL_USERS.map(u => ({
+        replaceOne: { filter: { id: u.id }, replacement: { ...u, _seededAt: now }, upsert: true }
+      }));
+      const orderOps = INITIAL_ORDERS.map(o => ({
+        replaceOne: { filter: { id: o.id }, replacement: { ...o, _seededAt: now }, upsert: true }
+      }));
+      const couponOps = INITIAL_COUPONS.map(c => ({
+        replaceOne: { filter: { id: c.id }, replacement: { ...c, _seededAt: now }, upsert: true }
+      }));
+      const logOps = INITIAL_ADMIN_LOGS.map(l => ({
+        replaceOne: { filter: { id: l.id }, replacement: { ...l, _seededAt: now }, upsert: true }
+      }));
+
+      await Promise.all([
+        productOps.length > 0 ? db.collection('products').bulkWrite(productOps) : Promise.resolve(),
+        categoryOps.length > 0 ? db.collection('categories').bulkWrite(categoryOps) : Promise.resolve(),
+        userOps.length > 0 ? db.collection('users').bulkWrite(userOps) : Promise.resolve(),
+        orderOps.length > 0 ? db.collection('orders').bulkWrite(orderOps) : Promise.resolve(),
+        couponOps.length > 0 ? db.collection('coupons').bulkWrite(couponOps) : Promise.resolve(),
+        logOps.length > 0 ? db.collection('admin_logs').bulkWrite(logOps) : Promise.resolve(),
+        db.collection('g2g_connector').replaceOne({}, { ...INITIAL_G2G_CONNECTOR, _seededAt: now }, { upsert: true }),
+        db.collection('content').replaceOne({}, { ...INITIAL_CONTENT, _seededAt: now }, { upsert: true }),
+      ]);
+      console.info('[repository] Seed complete.');
+    } catch (err) {
+      console.error('[repository] Seed failed:', err);
+      // Reset so a future call can retry
+      seedPromise = null;
+    }
+  })();
+
+  return seedPromise;
+}
+
+/**
+ * Ensure MongoDB is seeded before reading. No-op for in-memory mode.
+ */
+async function ensureSeeded() {
+  if (isMongoConfigured) {
+    await seedIfEmpty();
+  }
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+
+export async function getProducts(): Promise<Product[]> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const docs = await db.collection('products').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
+    return docs as unknown as Product[];
+  }
+  return [...memProducts];
+}
+
+export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const doc = await db.collection('products').findOne(
+      { $or: [{ id: idOrSlug }, { slug: idOrSlug }] },
+      { projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (doc as unknown as Product) || null;
+  }
+  return memProducts.find(p => p.id === idOrSlug || p.slug === idOrSlug) || null;
+}
+
+export async function createProduct(product: Product): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('products').insertOne({ ...product, _seededAt: new Date().toISOString() });
+  } else {
+    memProducts.unshift(product);
+  }
+}
+
+export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('products').findOneAndUpdate(
+      { id },
+      { $set: { ...updates, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after', projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (result as unknown as Product) || null;
+  }
+  const idx = memProducts.findIndex(p => p.id === id);
+  if (idx === -1) return null;
+  memProducts[idx] = { ...memProducts[idx], ...updates, updatedAt: new Date().toISOString() };
+  return memProducts[idx];
+}
+
+export async function deleteProduct(id: string): Promise<boolean> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('products').deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+  const before = memProducts.length;
+  memProducts = memProducts.filter(p => p.id !== id);
+  return memProducts.length < before;
+}
+
+/**
+ * Bulk-replace all products. Used by bulk-update and import endpoints.
+ */
+export async function replaceAllProducts(newList: Product[]): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    // Use bulkWrite for efficiency: upsert each, delete missing
+    const ops = newList.map(p => ({
+      replaceOne: {
+        filter: { id: p.id },
+        replacement: { ...p, _seededAt: new Date().toISOString() },
+        upsert: true,
+      },
+    }));
+    if (ops.length > 0) await db.collection('products').bulkWrite(ops);
+    // Note: we don't delete missing products here — that's handled by the caller if needed
+  } else {
+    memProducts = newList;
+  }
+}
+
+/**
+ * Bulk-update specific products by ID with a transform function.
+ */
+export async function bulkUpdateProducts(
+  productIds: string[],
+  transform: (p: Product) => Product
+): Promise<number> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const docs = await db.collection('products').find({ id: { $in: productIds } }).toArray();
+    if (docs.length === 0) return 0;
+    const ops = docs.map((doc: any) => {
+      const product = { ...doc } as Product;
+      delete (product as any)._id;
+      delete (product as any)._seededAt;
+      const updated = transform(product);
+      return {
+        replaceOne: {
+          filter: { id: product.id },
+          replacement: { ...updated, _seededAt: doc._seededAt || new Date().toISOString() },
+        },
+      };
+    });
+    await db.collection('products').bulkWrite(ops);
+    return docs.length;
+  }
+  let count = 0;
+  memProducts = memProducts.map(p => {
+    if (!productIds.includes(p.id)) return p;
+    count++;
+    return transform(p);
+  });
+  return count;
+}
+
+// ============================================================
+// CATEGORIES
+// ============================================================
+
+export async function getCategories(): Promise<Category[]> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const docs = await db.collection('categories').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
+    return docs as unknown as Category[];
+  }
+  return [...memCategories];
+}
+
+export async function createCategory(category: Category): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('categories').insertOne({ ...category, _seededAt: new Date().toISOString() });
+  } else {
+    memCategories.push(category);
+  }
+}
+
+// ============================================================
+// USERS
+// ============================================================
+
+export async function getUsers(): Promise<User[]> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const docs = await db.collection('users').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
+    return docs as unknown as User[];
+  }
+  return [...memUsers];
+}
+
+export async function findUserByEmail(email: string): Promise<User | null> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const doc = await db.collection('users').findOne(
+      { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+      { projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (doc as unknown as User) || null;
+  }
+  return memUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+}
+
+export async function createUser(user: User): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('users').insertOne({ ...user, _seededAt: new Date().toISOString() });
+  } else {
+    memUsers.push(user);
+  }
+}
+
+export async function updateUserByEmail(email: string, updates: Partial<User>): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('users').updateOne(
+      { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+      { $set: updates }
+    );
+  } else {
+    const idx = memUsers.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (idx !== -1) memUsers[idx] = { ...memUsers[idx], ...updates };
+  }
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+
+export async function getOrders(): Promise<Order[]> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const docs = await db.collection('orders').find({}, { projection: { _seededAt: 0, _id: 0 } }).sort({ createdAt: -1 }).toArray();
+    return docs as unknown as Order[];
+  }
+  return [...memOrders];
+}
+
+export async function getOrderById(idOrNumber: string): Promise<Order | null> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const doc = await db.collection('orders').findOne(
+      { $or: [{ id: idOrNumber }, { orderNumber: idOrNumber }] },
+      { projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (doc as unknown as Order) || null;
+  }
+  return memOrders.find(o => o.id === idOrNumber || o.orderNumber === idOrNumber) || null;
+}
+
+export async function createOrder(order: Order): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('orders').insertOne({ ...order, _seededAt: new Date().toISOString() });
+  } else {
+    memOrders.unshift(order);
+  }
+}
+
+export async function updateOrder(id: string, updates: Partial<Order>): Promise<Order | null> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('orders').findOneAndUpdate(
+      { id },
+      { $set: { ...updates, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after', projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (result as unknown as Order) || null;
+  }
+  const idx = memOrders.findIndex(o => o.id === id);
+  if (idx === -1) return null;
+  memOrders[idx] = { ...memOrders[idx], ...updates, updatedAt: new Date().toISOString() };
+  return memOrders[idx];
+}
+
+export async function updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
+  await updateOrder(id, { orderStatus: status });
+}
+
+// ============================================================
+// COUPONS
+// ============================================================
+
+export async function getCoupons(): Promise<Coupon[]> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const docs = await db.collection('coupons').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
+    return docs as unknown as Coupon[];
+  }
+  return [...memCoupons];
+}
+
+export async function findCouponByCode(code: string): Promise<Coupon | null> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const doc = await db.collection('coupons').findOne(
+      { code: { $regex: new RegExp(`^${code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+      { projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (doc as unknown as Coupon) || null;
+  }
+  return memCoupons.find(c => c.code.toUpperCase() === code.toUpperCase()) || null;
+}
+
+export async function incrementCouponUsage(code: string): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('coupons').updateOne(
+      { code: { $regex: new RegExp(`^${code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+      { $inc: { usageCount: 1 } }
+    );
+  } else {
+    const coupon = memCoupons.find(c => c.code.toUpperCase() === code.toUpperCase());
+    if (coupon) coupon.usageCount = (coupon.usageCount || 0) + 1;
+  }
+}
+
+// ============================================================
+// CONTENT (single document)
+// ============================================================
+
+export async function getContent(): Promise<ContentSection> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const doc = await db.collection('content').findOne({}, { projection: { _seededAt: 0, _id: 0 } });
+    if (doc) return doc as unknown as ContentSection;
+    return { ...INITIAL_CONTENT };
+  }
+  return { ...memContent };
+}
+
+export async function updateContent(updates: Partial<ContentSection>): Promise<ContentSection> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('content').findOneAndUpdate(
+      {},
+      { $set: updates },
+      { returnDocument: 'after', projection: { _seededAt: 0, _id: 0 }, upsert: true }
+    );
+    return (result as unknown as ContentSection) || { ...INITIAL_CONTENT, ...updates };
+  }
+  memContent = { ...memContent, ...updates };
+  return memContent;
+}
+
+// ============================================================
+// ADMIN LOGS
+// ============================================================
+
+export async function getAdminLogs(limit?: number): Promise<AdminLog[]> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const cursor = db.collection('admin_logs').find({}, { projection: { _seededAt: 0, _id: 0 } }).sort({ timestamp: -1 });
+    const docs = limit ? await cursor.limit(limit).toArray() : await cursor.toArray();
+    return docs as unknown as AdminLog[];
+  }
+  const list = [...memAdminLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return limit ? list.slice(0, limit) : list;
+}
+
+export async function createAdminLog(log: AdminLog): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('admin_logs').insertOne({ ...log, _seededAt: new Date().toISOString() });
+  } else {
+    memAdminLogs.unshift(log);
+  }
+}
+
+// ============================================================
+// G2G CONNECTOR (single document)
+// ============================================================
+
+export async function getG2GConnector(): Promise<G2GSupplierConnector> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const doc = await db.collection('g2g_connector').findOne({}, { projection: { _seededAt: 0, _id: 0 } });
+    if (doc) return doc as unknown as G2GSupplierConnector;
+    return { ...INITIAL_G2G_CONNECTOR };
+  }
+  return { ...memG2GConnector };
+}
+
+export async function updateG2GConnector(updates: Partial<G2GSupplierConnector>): Promise<G2GSupplierConnector> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('g2g_connector').findOneAndUpdate(
+      {},
+      { $set: { ...updates, lastSync: new Date().toISOString() } },
+      { returnDocument: 'after', projection: { _seededAt: 0, _id: 0 }, upsert: true }
+    );
+    return (result as unknown as G2GSupplierConnector) || { ...INITIAL_G2G_CONNECTOR, ...updates };
+  }
+  memG2GConnector = { ...memG2GConnector, ...updates, lastSync: new Date().toISOString() };
+  return memG2GConnector;
+}
+
+// ============================================================
+// IMPORT JOBS
+// ============================================================
+
+export async function getImportJobs(): Promise<ImportJob[]> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const docs = await db.collection('import_jobs').find({}, { projection: { _seededAt: 0, _id: 0 } }).sort({ createdAt: -1 }).toArray();
+    return docs as unknown as ImportJob[];
+  }
+  return [...memImportJobs];
+}
+
+export async function createImportJob(job: ImportJob): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    await db.collection('import_jobs').insertOne({ ...job, _seededAt: new Date().toISOString() });
+  } else {
+    memImportJobs.unshift(job);
+  }
+}
+
+/**
+ * Add multiple products at once (used by import endpoints).
+ */
+export async function addProducts(products: Product[]): Promise<void> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    if (products.length > 0) {
+      const now = new Date().toISOString();
+      await db.collection('products').insertMany(products.map(p => ({ ...p, _seededAt: now })));
+    }
+  } else {
+    memProducts = [...products, ...memProducts];
+  }
+}
+
+// ============================================================
+// Health / introspection
+// ============================================================
+
+export async function getCollectionCounts(): Promise<Record<string, number>> {
+  if (!isMongoConfigured) {
+    return {
+      products: memProducts.length,
+      categories: memCategories.length,
+      users: memUsers.length,
+      orders: memOrders.length,
+      coupons: memCoupons.length,
+      admin_logs: memAdminLogs.length,
+    };
+  }
+  const db = await getDb();
+  const names = ['products', 'categories', 'users', 'orders', 'coupons', 'admin_logs', 'import_jobs'];
+  const entries = await Promise.all(
+    names.map(async n => [n, await db.collection(n).countDocuments()])
+  );
+  return Object.fromEntries(entries);
+}
