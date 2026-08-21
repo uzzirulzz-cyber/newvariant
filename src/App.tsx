@@ -18,6 +18,7 @@ import { CheckoutModal } from './components/storefront/CheckoutModal';
 import { CustomerPortalModal } from './components/storefront/CustomerPortalModal';
 import { ProjectorComparisonModal } from './components/storefront/ProjectorComparisonModal';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { AdminLoginGate } from './components/admin/AdminLoginGate';
 
 /**
  * Check if the current URL path is /admin.
@@ -29,7 +30,11 @@ function isAdminUrl(): boolean {
 }
 
 const AppContent: React.FC = () => {
-  const { activeView, setActiveView } = useStore();
+  const { activeView, setActiveView, currentUser } = useStore();
+
+  // Check if the current user is an authenticated admin
+  const ADMIN_ROLES = ['super_admin', 'admin', 'product_manager', 'order_manager', 'finance_manager', 'support_agent', 'content_manager', 'marketing_manager', 'read_only'];
+  const isAdminAuthenticated = currentUser && currentUser.id !== 'guest' && ADMIN_ROLES.includes(currentUser.role);
 
   // ── Clean up stale localStorage from previous persist middleware ───
   // The Zustand auth + cart stores no longer use persist, but old keys
@@ -96,8 +101,12 @@ const AppContent: React.FC = () => {
       <ProjectorComparisonModal />
 
       {activeView === 'admin' ? (
-        /* ADMIN DASHBOARD VIEW — only accessible via /admin URL */
-        <AdminLayout />
+        /* ADMIN VIEW — password protected */
+        isAdminAuthenticated ? (
+          <AdminLayout />
+        ) : (
+          <AdminLoginGate />
+        )
       ) : (
         /* STOREFRONT VIEW — default landing page */
         <div className="flex flex-col min-h-screen">
