@@ -64,6 +64,7 @@ export const AdminDashboard: React.FC = () => {
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [timeRange, setTimeRange] = useState<'1D' | '1W' | '1M' | '1Y'>('1W');
   const [dashboardTab, setDashboardTab] = useState<'activities' | 'statistics' | 'summary'>('activities');
 
@@ -216,7 +217,12 @@ export const AdminDashboard: React.FC = () => {
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          <button className="btn-glossy btn-glossy-purple btn-glossy-circle" aria-label="Settings">
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="btn-glossy btn-glossy-purple btn-glossy-circle"
+            aria-label="Open dashboard settings"
+            title="Dashboard Settings"
+          >
             <Settings className="w-4 h-4" />
           </button>
 
@@ -795,6 +801,121 @@ export const AdminDashboard: React.FC = () => {
                   {resetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                   <span>Reset Everything</span>
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* ===== SETTINGS MODAL ===== */}
+        {isSettingsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSettingsOpen(false)}
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-lg rounded-2xl bg-[#151a23] border border-purple-500/30 shadow-2xl p-6 z-10"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="settings-modal-title"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
+                    <Settings className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <h3 id="settings-modal-title" className="text-base font-bold text-white font-display">Dashboard Settings</h3>
+                </div>
+                <button
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                  aria-label="Close settings"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Time range preference */}
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Default Time Range</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(['1D', '1W', '1M', '1Y'] as const).map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => {
+                          setTimeRange(r);
+                          addToast('success', 'Preference Saved', `Default time range set to ${r === '1D' ? 'Today' : r === '1W' ? 'This Week' : r === '1M' ? 'This Month' : 'This Year'}.`);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider border transition-all ${
+                          timeRange === r
+                            ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                            : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {r === '1D' ? 'Today' : r === '1W' ? 'Week' : r === '1M' ? 'Month' : 'Year'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick links to admin sections */}
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Quick Admin Links</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => { setAdminTab('products'); setIsSettingsOpen(false); }}
+                      className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-medium flex items-center gap-2 border border-white/10"
+                    >
+                      <Package className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Catalog Products</span>
+                    </button>
+                    <button
+                      onClick={() => { setAdminTab('orders'); setIsSettingsOpen(false); }}
+                      className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-medium flex items-center gap-2 border border-white/10"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Orders</span>
+                    </button>
+                    <button
+                      onClick={() => { setAdminTab('security'); setIsSettingsOpen(false); }}
+                      className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-medium flex items-center gap-2 border border-white/10"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
+                      <span>Security & Audit</span>
+                    </button>
+                    <button
+                      onClick={() => { setAdminTab('content'); setIsSettingsOpen(false); }}
+                      className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-medium flex items-center gap-2 border border-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                      <span>Storefront Content</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Reset DB shortcut */}
+                <div className="pt-3 border-t border-white/10">
+                  <button
+                    onClick={() => {
+                      setIsSettingsOpen(false);
+                      setIsResetOpen(true);
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 border border-red-500/30"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Database (Destructive)</span>
+                  </button>
+                  <p className="text-[10px] text-gray-500 mt-2 text-center leading-relaxed">
+                    Wipes all MongoDB collections and re-seeds with default data.
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>

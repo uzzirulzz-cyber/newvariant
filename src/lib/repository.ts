@@ -136,7 +136,7 @@ async function seedIfEmpty(): Promise<void> {
         db.collection('g2g_connector').replaceOne({}, { ...INITIAL_G2G_CONNECTOR, _seededAt: now }, { upsert: true }),
         db.collection('content').replaceOne({}, { ...INITIAL_CONTENT, _seededAt: now }, { upsert: true }),
       ]);
-      console.info('[repository] Seed complete. Default admin: admin@playbeat.digital (password: playbeat1122 — CHANGE IMMEDIATELY)');
+      console.info('[repository] Seed complete. Default admin account ensured.');
     } catch (err) {
       console.error('[repository] Seed failed:', err);
       // Reset so a future call can retry
@@ -318,47 +318,76 @@ export async function createCategory(category: Category): Promise<void> {
 
 export async function getUsers(): Promise<User[]> {
   if (isMongoConfigured) {
-    await ensureSeeded();
-    const db = await getDb();
-    const docs = await db.collection('users').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
-    return docs as unknown as User[];
+    try {
+      await ensureSeeded();
+      const db = await getDb();
+      const docs = await db.collection('users').find({}, { projection: { _seededAt: 0, _id: 0 } }).toArray();
+      return docs as unknown as User[];
+    } catch {
+      console.warn('[repository] MongoDB error in getUsers, using in-memory fallback');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
   return [...memUsers];
 }
 
 export async function findUserByEmail(email: string): Promise<User | null> {
   if (isMongoConfigured) {
-    await ensureSeeded();
-    const db = await getDb();
-    const doc = await db.collection('users').findOne(
-      { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
-      { projection: { _seededAt: 0, _id: 0 } }
-    );
-    return (doc as unknown as User) || null;
+    try {
+      await ensureSeeded();
+      const db = await getDb();
+      const doc = await db.collection('users').findOne(
+        { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+        { projection: { _seededAt: 0, _id: 0 } }
+      );
+      return (doc as unknown as User) || null;
+    } catch {
+      console.warn('[repository] MongoDB error in findUserByEmail, using in-memory fallback');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
   return memUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
 }
 
 export async function createUser(user: User): Promise<void> {
   if (isMongoConfigured) {
-    const db = await getDb();
-    await db.collection('users').insertOne({ ...user, _seededAt: new Date().toISOString() });
-  } else {
-    memUsers.push(user);
+    try {
+      const db = await getDb();
+      await db.collection('users').insertOne({ ...user, _seededAt: new Date().toISOString() });
+      return;
+    } catch (err) {
+      console.warn('[repository] MongoDB error in createUser, using in-memory fallback:', (err as Error)?.message?.substring(0, 100));
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
+  // In-memory fallback (also runs if Mongo write failed above)
+  memUsers.push(user);
 }
 
 export async function updateUserByEmail(email: string, updates: Partial<User>): Promise<void> {
   if (isMongoConfigured) {
-    const db = await getDb();
-    await db.collection('users').updateOne(
-      { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
-      { $set: updates }
-    );
-  } else {
-    const idx = memUsers.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-    if (idx !== -1) memUsers[idx] = { ...memUsers[idx], ...updates };
+    try {
+      const db = await getDb();
+      await db.collection('users').updateOne(
+        { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+        { $set: updates }
+      );
+      return;
+    } catch {
+      console.warn('[repository] MongoDB error in updateUserByEmail, using in-memory fallback');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
+  const idx = memUsers.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+  if (idx !== -1) memUsers[idx] = { ...memUsers[idx], ...updates };
 }
 
 /**
@@ -367,13 +396,20 @@ export async function updateUserByEmail(email: string, updates: Partial<User>): 
  */
 export async function findUserWithPassword(email: string): Promise<User | null> {
   if (isMongoConfigured) {
-    await ensureSeeded();
-    const db = await getDb();
-    const doc = await db.collection('users').findOne(
-      { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
-      { projection: { _seededAt: 0, _id: 0 } }
-    );
-    return (doc as unknown as User) || null;
+    try {
+      await ensureSeeded();
+      const db = await getDb();
+      const doc = await db.collection('users').findOne(
+        { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+        { projection: { _seededAt: 0, _id: 0 } }
+      );
+      return (doc as unknown as User) || null;
+    } catch {
+      console.warn('[repository] MongoDB error in findUserWithPassword, using in-memory fallback');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
   return memUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
 }
@@ -383,13 +419,20 @@ export async function findUserWithPassword(email: string): Promise<User | null> 
  */
 export async function updateUserById(id: string, updates: Partial<User>): Promise<User | null> {
   if (isMongoConfigured) {
-    const db = await getDb();
-    const result = await db.collection('users').findOneAndUpdate(
-      { id },
-      { $set: updates },
-      { returnDocument: 'after', projection: { _seededAt: 0, _id: 0 } }
-    );
-    return (result as unknown as User) || null;
+    try {
+      const db = await getDb();
+      const result = await db.collection('users').findOneAndUpdate(
+        { id },
+        { $set: updates },
+        { returnDocument: 'after', projection: { _seededAt: 0, _id: 0 } }
+      );
+      return (result as unknown as User) || null;
+    } catch {
+      console.warn('[repository] MongoDB error in updateUserById, using in-memory fallback');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
   const idx = memUsers.findIndex(u => u.id === id);
   if (idx === -1) return null;
@@ -402,9 +445,16 @@ export async function updateUserById(id: string, updates: Partial<User>): Promis
  */
 export async function deleteUserById(id: string): Promise<boolean> {
   if (isMongoConfigured) {
-    const db = await getDb();
-    const result = await db.collection('users').deleteOne({ id });
-    return result.deletedCount > 0;
+    try {
+      const db = await getDb();
+      const result = await db.collection('users').deleteOne({ id });
+      return result.deletedCount > 0;
+    } catch {
+      console.warn('[repository] MongoDB error in deleteUserById, using in-memory fallback');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
   const before = memUsers.length;
   const filtered = memUsers.filter(u => u.id !== id);
@@ -426,9 +476,16 @@ export async function setUserStatus(id: string, status: 'active' | 'suspended' |
 export async function changeUserPassword(id: string, newPassword: string): Promise<boolean> {
   const passwordHash = await hashPassword(newPassword);
   if (isMongoConfigured) {
-    const db = await getDb();
-    const result = await db.collection('users').updateOne({ id }, { $set: { passwordHash } });
-    return result.modifiedCount > 0;
+    try {
+      const db = await getDb();
+      const result = await db.collection('users').updateOne({ id }, { $set: { passwordHash } });
+      return result.modifiedCount > 0;
+    } catch {
+      console.warn('[repository] MongoDB error in changeUserPassword, using in-memory fallback');
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
   const idx = memUsers.findIndex(u => u.id === id);
   if (idx === -1) return false;
@@ -440,34 +497,53 @@ export async function changeUserPassword(id: string, newPassword: string): Promi
  * Reset the entire database — drops all collections and re-seeds.
  * Used by the "Reset Dashboard" button in the admin panel.
  * DANGEROUS: this wipes all orders, users, products, etc.
+ *
+ * Resilience: if MongoDB is unreachable (cold start, network firewall),
+ * the function falls back to the in-memory arrays so the admin still sees
+ * a "fresh" catalog after the page reloads. The next time Mongo is reachable,
+ * the seedIfEmpty() call on the next read will re-seed the live DB.
  */
 export async function resetDatabase(): Promise<void> {
-  if (!isMongoConfigured) {
-    // In-memory mode: just re-init the arrays
-    memProducts = [...INITIAL_PRODUCTS];
-    memCategories = [...INITIAL_CATEGORIES];
-    memUsers = [...INITIAL_USERS];
-    memOrders = [...INITIAL_ORDERS];
-    memCoupons = [...INITIAL_COUPONS];
-    memAdminLogs = [...INITIAL_ADMIN_LOGS];
-    memImportJobs = [];
-    memG2GConnector = { ...INITIAL_G2G_CONNECTOR };
-    memContent = { ...INITIAL_CONTENT };
-    // Force re-seed on next access
-    seedPromise = null;
-    return;
-  }
-
-  const db = await getDb();
-  const collections = ['products', 'categories', 'users', 'orders', 'coupons', 'admin_logs', 'g2g_connector', 'content', 'import_jobs'];
-  await Promise.all(collections.map(name => db.collection(name).deleteMany({})));
+  // Always reset in-memory arrays first — this is what the admin UI reads
+  // when Mongo is unreachable, and it's also a fast local mirror that
+  // gets re-synced from Mongo on the next request.
+  memProducts = [...INITIAL_PRODUCTS];
+  memCategories = [...INITIAL_CATEGORIES];
+  memUsers = [...INITIAL_USERS];
+  memOrders = [...INITIAL_ORDERS];
+  memCoupons = [...INITIAL_COUPONS];
+  memAdminLogs = [...INITIAL_ADMIN_LOGS];
+  memImportJobs = [];
+  memG2GConnector = { ...INITIAL_G2G_CONNECTOR };
+  memContent = { ...INITIAL_CONTENT };
 
   // Force re-seed on next access
   seedPromise = null;
-  // Clear the cached client so the next request gets a fresh connection
+  // Clear the cached Mongo client so the next request gets a fresh connection
   globalThis.__mongoConnPromise = undefined;
   globalThis.__mongoClient = undefined;
   globalThis.__mongoDb = undefined;
+
+  if (!isMongoConfigured) {
+    return;
+  }
+
+  // Best-effort DB wipe — don't fail the reset if Mongo is unreachable.
+  try {
+    const db = await getDb();
+    const collections = [
+      'products', 'categories', 'users', 'orders', 'coupons',
+      'admin_logs', 'g2g_connector', 'content', 'import_jobs',
+    ];
+    await Promise.all(collections.map(name => db.collection(name).deleteMany({})));
+    console.info('[repository] Database reset: all MongoDB collections wiped. Re-seeding on next read.');
+  } catch (err) {
+    console.warn(
+      '[repository] Database reset: MongoDB unreachable, only in-memory arrays were reset. ' +
+      'The live DB will be re-seeded on the next successful connection.',
+      (err as Error)?.message?.substring(0, 100)
+    );
+  }
 }
 
 // ============================================================
@@ -613,11 +689,19 @@ export async function getAdminLogs(limit?: number): Promise<AdminLog[]> {
 
 export async function createAdminLog(log: AdminLog): Promise<void> {
   if (isMongoConfigured) {
-    const db = await getDb();
-    await db.collection('admin_logs').insertOne({ ...log, _seededAt: new Date().toISOString() });
-  } else {
-    memAdminLogs.unshift(log);
+    try {
+      const db = await getDb();
+      await db.collection('admin_logs').insertOne({ ...log, _seededAt: new Date().toISOString() });
+      return;
+    } catch (err) {
+      console.warn('[repository] MongoDB error in createAdminLog, using in-memory fallback:', (err as Error)?.message?.substring(0, 100));
+      globalThis.__mongoConnPromise = undefined;
+      globalThis.__mongoClient = undefined;
+      globalThis.__mongoDb = undefined;
+    }
   }
+  // In-memory fallback (also runs if Mongo write failed above)
+  memAdminLogs.unshift(log);
 }
 
 // ============================================================

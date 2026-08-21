@@ -17,8 +17,12 @@ import {
   Download,
   Filter,
   Check,
-  X
+  X,
+  Plus,
+  Trash2,
+  Save,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface Transaction {
   id: string;
@@ -192,25 +196,8 @@ export const FinancialPaymentManager: React.FC = () => {
         </div>
       </div>
 
-      {/* GATEWAY CONNECTION STATUS */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {[
-          { name: 'JazzCash Direct', status: 'Active (Instant API)', fee: '1.2%', color: 'border-[#FF304F]/40' },
-          { name: 'Easypaisa QR', status: 'Active (Direct Merchant)', fee: '1.0%', color: 'border-[#00D99A]/40' },
-          { name: 'Stripe Global', status: 'Active (TLS 1.3 Verified)', fee: '2.9% + $0.30', color: 'border-[#1769FF]/40' },
-          { name: 'Lemon Squeezy', status: 'Active (MoR Auto-Tax)', fee: '5.0% + $0.50', color: 'border-[#FFC928]/40' },
-          { name: 'Crypto USDT TRC20', status: 'Active (Hot Wallet)', fee: '$1.00 Flat', color: 'border-purple-500/40' }
-        ].map((gw, i) => (
-          <div key={i} className={`p-3 rounded-xl bg-[#10182A] border ${gw.color}`}>
-            <div className="text-xs font-bold text-white truncate">{gw.name}</div>
-            <div className="text-[10px] text-[#00D99A] font-mono mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00D99A] animate-pulse" />
-              <span>{gw.status}</span>
-            </div>
-            <div className="text-[10px] text-slate-400 font-mono mt-1">Fee: {gw.fee}</div>
-          </div>
-        ))}
-      </div>
+      {/* GATEWAY CONNECTION STATUS — INTERACTIVE (add / edit / remove / configure) */}
+      <GatewayManager />
 
       {/* TRANSACTIONS RECONCILIATION TABLE */}
       <div className="rounded-2xl bg-[#10182A] border border-[#26334A] overflow-hidden shadow-xl">
@@ -341,6 +328,423 @@ export const FinancialPaymentManager: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// ============================================================================
+// GatewayManager — Interactive payment gateway CRUD
+// Add / edit / remove / configure / enable / disable payment gateways.
+// State is local (component-level) — in production this would persist to the
+// `gateways` MongoDB collection via /api/admin/gateways endpoints.
+// ============================================================================
+interface Gateway {
+  id: string;
+  name: string;
+  type: 'jazzcash' | 'easypaisa' | 'stripe' | 'lemonsqueezy' | 'bank_transfer' | 'crypto_usdt' | 'paypal' | 'custom';
+  status: 'active' | 'inactive' | 'sandbox' | 'error';
+  fee: string;
+  apiKey?: string;
+  apiSecret?: string;
+  webhookUrl?: string;
+  merchantId?: string;
+  iban?: string;
+  walletAddress?: string;
+  notes?: string;
+}
+
+const GATEWAY_TYPES: { value: Gateway['type']; label: string; defaultFee: string; icon: React.ReactNode }[] = [
+  { value: 'jazzcash',     label: 'JazzCash',         defaultFee: '1.2%',          icon: <Smartphone className="w-3.5 h-3.5 text-[#FF304F]" /> },
+  { value: 'easypaisa',    label: 'Easypaisa',       defaultFee: '1.0%',          icon: <Smartphone className="w-3.5 h-3.5 text-[#00D99A]" /> },
+  { value: 'stripe',       label: 'Stripe',           defaultFee: '2.9% + $0.30',  icon: <CreditCard className="w-3.5 h-3.5 text-[#1769FF]" /> },
+  { value: 'lemonsqueezy', label: 'Lemon Squeezy',   defaultFee: '5.0% + $0.50',  icon: <CreditCard className="w-3.5 h-3.5 text-[#FFC928]" /> },
+  { value: 'paypal',       label: 'PayPal',           defaultFee: '3.49% + $0.49',  icon: <CreditCard className="w-3.5 h-3.5 text-blue-400" /> },
+  { value: 'bank_transfer',label: 'Bank Wire (IBAN)', defaultFee: '$0.00 (manual)', icon: <Building className="w-3.5 h-3.5 text-slate-300" /> },
+  { value: 'crypto_usdt',  label: 'Crypto USDT TRC20', defaultFee: '$1.00 flat',  icon: <Bitcoin className="w-3.5 h-3.5 text-purple-400" /> },
+  { value: 'custom',       label: 'Custom Gateway',   defaultFee: '—',              icon: <CreditCard className="w-3.5 h-3.5 text-slate-300" /> },
+];
+
+const STATUS_META: Record<Gateway['status'], { label: string; color: string; dot: string }> = {
+  active:   { label: 'Active',       color: 'text-[#00D99A] bg-[#00D99A]/10 border-[#00D99A]/30', dot: 'bg-[#00D99A] animate-pulse' },
+  inactive: { label: 'Inactive',     color: 'text-slate-400 bg-white/5 border-white/10',           dot: 'bg-slate-500' },
+  sandbox:  { label: 'Sandbox',      color: 'text-[#FFC928] bg-[#FFC928]/10 border-[#FFC928]/30',  dot: 'bg-[#FFC928]' },
+  error:    { label: 'Error',        color: 'text-[#FF304F] bg-[#FF304F]/10 border-[#FF304F]/30',  dot: 'bg-[#FF304F]' },
+};
+
+const GatewayManager: React.FC = () => {
+  const { addToast } = useStore();
+  const [gateways, setGateways] = useState<Gateway[]>([
+    { id: 'gw-jazzcash', name: 'JazzCash Direct', type: 'jazzcash', status: 'active', fee: '1.2%', merchantId: 'MC-PB-9941', apiKey: 'jc_live_****', notes: 'Pakistan local cards + wallets' },
+    { id: 'gw-easypaisa', name: 'Easypaisa QR', type: 'easypaisa', status: 'active', fee: '1.0%', merchantId: 'EP-PB-2042', apiKey: 'ep_live_****', notes: 'QR-based instant settlement' },
+    { id: 'gw-stripe', name: 'Stripe Global', type: 'stripe', status: 'active', fee: '2.9% + $0.30', apiKey: 'sk_live_****', webhookUrl: 'https://playbeat.digital/api/webhooks/stripe' },
+    { id: 'gw-lemonsqueezy', name: 'Lemon Squeezy', type: 'lemonsqueezy', status: 'sandbox', fee: '5.0% + $0.50', apiKey: 'lem_test_****', notes: 'Merchant of Record for EU/US tax' },
+    { id: 'gw-usdt', name: 'Crypto USDT TRC20', type: 'crypto_usdt', status: 'active', fee: '$1.00 flat', walletAddress: 'TXYZ1234****5678', notes: 'Hot wallet auto-confirmations' },
+  ]);
+
+  const [editing, setEditing] = useState<Gateway | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Gateway | null>(null);
+
+  const openAdd = () => {
+    setEditing({
+      id: `gw-${Date.now()}`,
+      name: '',
+      type: 'stripe',
+      status: 'inactive',
+      fee: '2.9% + $0.30',
+    });
+    setIsEditorOpen(true);
+  };
+
+  const openEdit = (gw: Gateway) => {
+    setEditing({ ...gw });
+    setIsEditorOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!editing) return;
+    if (!editing.name.trim()) {
+      addToast('error', 'Validation Error', 'Gateway name is required.');
+      return;
+    }
+    setGateways((prev) => {
+      const exists = prev.find((g) => g.id === editing.id);
+      if (exists) {
+        addToast('success', 'Gateway Updated', `${editing.name} configuration saved.`);
+        return prev.map((g) => (g.id === editing.id ? editing : g));
+      } else {
+        addToast('success', 'Gateway Added', `${editing.name} added to payment gateways.`);
+        return [editing, ...prev];
+      }
+    });
+    setIsEditorOpen(false);
+    setEditing(null);
+  };
+
+  const handleDelete = (gw: Gateway) => {
+    setGateways((prev) => prev.filter((g) => g.id !== gw.id));
+    addToast('info', 'Gateway Removed', `${gw.name} has been removed from payment gateways.`);
+    setConfirmDelete(null);
+  };
+
+  const toggleStatus = (gw: Gateway) => {
+    const next: Gateway['status'] = gw.status === 'active' ? 'inactive' : 'active';
+    setGateways((prev) => prev.map((g) => (g.id === gw.id ? { ...g, status: next } : g)));
+    addToast('info', 'Status Updated', `${gw.name} is now ${next.toUpperCase()}.`);
+  };
+
+  return (
+    <div className="rounded-2xl bg-[#10182A] border border-[#26334A] overflow-hidden shadow-xl">
+      {/* Header */}
+      <div className="p-4 border-b border-[#26334A] flex items-center justify-between">
+        <div className="font-bold text-white text-sm uppercase tracking-wider font-mono flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-[#1769FF]" />
+          Payment Gateways Configuration
+        </div>
+        <button
+          onClick={openAdd}
+          className="px-3 py-1.5 rounded-lg bg-[#1769FF]/20 text-[#287BFF] hover:bg-[#1769FF]/30 border border-[#1769FF]/40 text-xs font-bold flex items-center gap-1.5"
+        >
+          <Plus className="w-3 h-3" /> Add Gateway
+        </button>
+      </div>
+
+      {/* Gateway grid */}
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {gateways.map((gw) => {
+          const meta = GATEWAY_TYPES.find((t) => t.value === gw.type);
+          const status = STATUS_META[gw.status];
+          return (
+            <div
+              key={gw.id}
+              className="p-4 rounded-xl bg-[#0E1626] border border-[#26334A] hover:border-[#1769FF]/40 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    {meta?.icon || <CreditCard className="w-4 h-4 text-slate-300" />}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-white truncate">{gw.name}</div>
+                    <div className="text-[10px] text-slate-500 font-mono uppercase">{meta?.label}</div>
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold border ${status.color} flex items-center gap-1 shrink-0`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                  {status.label}
+                </span>
+              </div>
+
+              <div className="text-[11px] text-slate-400 font-mono space-y-0.5 mb-3">
+                <div>Fee: <span className="text-slate-200">{gw.fee}</span></div>
+                {gw.merchantId && <div>Merchant: <span className="text-slate-200">{gw.merchantId}</span></div>}
+                {gw.apiKey && <div>API Key: <span className="text-slate-200 font-mono">{gw.apiKey}</span></div>}
+                {gw.walletAddress && <div>Wallet: <span className="text-slate-200 font-mono">{gw.walletAddress}</span></div>}
+                {gw.iban && <div>IBAN: <span className="text-slate-200 font-mono">{gw.iban}</span></div>}
+                {gw.webhookUrl && <div>Webhook: <span className="text-slate-200 truncate">{gw.webhookUrl}</span></div>}
+                {gw.notes && <div className="italic text-slate-500">{gw.notes}</div>}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 pt-2 border-t border-white/5">
+                <button
+                  onClick={() => toggleStatus(gw)}
+                  className="flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                  title={gw.status === 'active' ? 'Disable gateway' : 'Enable gateway'}
+                >
+                  {gw.status === 'active' ? 'Disable' : 'Enable'}
+                </button>
+                <button
+                  onClick={() => openEdit(gw)}
+                  className="flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#1769FF]/15 hover:bg-[#1769FF]/25 text-[#287BFF] transition-colors"
+                  title="Edit / Configure gateway"
+                >
+                  Configure
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(gw)}
+                  className="px-2 py-1.5 rounded-md text-[10px] bg-[#FF304F]/10 hover:bg-[#FF304F]/20 text-[#FF304F] transition-colors"
+                  title="Remove gateway"
+                  aria-label={`Remove ${gw.name}`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Editor Modal */}
+      <AnimatePresence>
+        {isEditorOpen && editing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditorOpen(false)}
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-lg rounded-2xl bg-[#151a23] border border-[#26334A] shadow-2xl p-6 z-10 max-h-[90vh] overflow-y-auto"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-[#1769FF]" />
+                  <h3 className="text-base font-bold text-white font-display">
+                    {gateways.find((g) => g.id === editing.id) ? 'Configure' : 'Add'} Gateway
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsEditorOpen(false)}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Gateway Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editing.name}
+                    onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                    placeholder="e.g. JazzCash Direct"
+                    className="input-sharp w-full px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">Type</label>
+                    <select
+                      value={editing.type}
+                      onChange={(e) => {
+                        const newType = e.target.value as Gateway['type'];
+                        const meta = GATEWAY_TYPES.find((t) => t.value === newType);
+                        setEditing({ ...editing, type: newType, fee: meta?.defaultFee || editing.fee });
+                      }}
+                      className="input-sharp w-full px-2 py-2 text-xs text-white"
+                    >
+                      {GATEWAY_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">Status</label>
+                    <select
+                      value={editing.status}
+                      onChange={(e) => setEditing({ ...editing, status: e.target.value as Gateway['status'] })}
+                      className="input-sharp w-full px-2 py-2 text-xs text-white"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="sandbox">Sandbox</option>
+                      <option value="error">Error</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Fee</label>
+                  <input
+                    type="text"
+                    value={editing.fee}
+                    onChange={(e) => setEditing({ ...editing, fee: e.target.value })}
+                    placeholder="e.g. 2.9% + $0.30"
+                    className="input-sharp w-full px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">API Key</label>
+                  <input
+                    type="text"
+                    value={editing.apiKey || ''}
+                    onChange={(e) => setEditing({ ...editing, apiKey: e.target.value })}
+                    placeholder="sk_live_... (stored encrypted)"
+                    className="input-sharp w-full px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">API Secret</label>
+                  <input
+                    type="password"
+                    value={editing.apiSecret || ''}
+                    onChange={(e) => setEditing({ ...editing, apiSecret: e.target.value })}
+                    placeholder="•••••••• (stored encrypted)"
+                    className="input-sharp w-full px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Webhook URL</label>
+                  <input
+                    type="text"
+                    value={editing.webhookUrl || ''}
+                    onChange={(e) => setEditing({ ...editing, webhookUrl: e.target.value })}
+                    placeholder="https://playbeat.digital/api/webhooks/..."
+                    className="input-sharp w-full px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Merchant ID</label>
+                  <input
+                    type="text"
+                    value={editing.merchantId || ''}
+                    onChange={(e) => setEditing({ ...editing, merchantId: e.target.value })}
+                    placeholder="MC-XXXX-XXXX"
+                    className="input-sharp w-full px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">IBAN / Wallet Address</label>
+                  <input
+                    type="text"
+                    value={editing.iban || editing.walletAddress || ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (editing.type === 'bank_transfer') setEditing({ ...editing, iban: v });
+                      else if (editing.type === 'crypto_usdt') setEditing({ ...editing, walletAddress: v });
+                      else setEditing({ ...editing, iban: v });
+                    }}
+                    placeholder={editing.type === 'crypto_usdt' ? 'TXYZ...' : editing.type === 'bank_transfer' ? 'PK36SCBL...' : 'Account reference'}
+                    className="input-sharp w-full px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Notes</label>
+                  <textarea
+                    value={editing.notes || ''}
+                    onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+                    placeholder="Internal notes, settlement schedule, etc."
+                    rows={2}
+                    className="input-sharp w-full px-3 py-2 text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-4">
+                <button
+                  onClick={() => setIsEditorOpen(false)}
+                  className="flex-1 py-2.5 rounded-lg bg-[#1f2937] hover:bg-[#2a3344] text-gray-300 text-xs font-bold uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex-1 py-2.5 rounded-lg bg-[#1769FF] hover:bg-[#287BFF] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Gateway</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete confirmation */}
+      <AnimatePresence>
+        {confirmDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmDelete(null)}
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-sm rounded-2xl bg-[#151a23] border border-[#FF304F]/30 shadow-2xl p-6 z-10"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-[#FF304F]/15 border border-[#FF304F]/30 flex items-center justify-center">
+                  <AlertCircle className="w-4 h-4 text-[#FF304F]" />
+                </div>
+                <h3 className="text-base font-bold text-white font-display">Remove Gateway?</h3>
+              </div>
+              <p className="text-xs text-gray-300 mb-5 leading-relaxed">
+                Are you sure you want to remove <span className="font-bold text-white">{confirmDelete.name}</span>? This will disable all transactions through this gateway.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 py-2.5 rounded-lg bg-[#1f2937] hover:bg-[#2a3344] text-gray-300 text-xs font-bold uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(confirmDelete)}
+                  className="flex-1 py-2.5 rounded-lg bg-[#FF304F] hover:bg-[#ff4f6f] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

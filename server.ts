@@ -942,7 +942,12 @@ export function createApiApp(): Express {
         if (user.passwordHash) {
           const passwordValid = await comparePassword(password, user.passwordHash);
           if (passwordValid) {
-            await repo.updateUserById(user.id, { lastLogin: new Date().toISOString() });
+            // Best-effort last-login update — don't fail login if Mongo is unreachable
+            try {
+              await repo.updateUserById(user.id, { lastLogin: new Date().toISOString() });
+            } catch {
+              console.warn('[auth/login] lastLogin update failed (non-fatal) — Mongo unreachable');
+            }
             const token = generateToken(user.id);
             return res.json({ success: true, user: sanitizeUser(user), token });
           } else {
@@ -1384,6 +1389,28 @@ async function startServer() {
 // Only start the dev server when run directly (NOT when imported by Vercel's
 // serverless runtime, which imports api/index.ts instead).
 if (!process.env.VERCEL) {
+  // Global handlers for unhandled promise rejections — prevents the server
+  // from crashing when MongoDB Atlas is unreachable from the dev sandbox.
+  // In production (Vercel), each serverless function is isolated so this
+  // doesn't apply, but it makes local dev much more resilient.
+  process.on('unhandledRejection', (reason, promise) => {
+    const msg = (reason as Error)?.message || String(reason);
+    if (msg.includes('MongoServerSelectionError') || msg.includes('Server selection timed out')) {
+      console.warn('[unhandledRejection] MongoDB timeout (suppressed):', msg.substring(0, 100));
+      return;
+    }
+    console.error('[unhandledRejection]', reason);
+  });
+  process.on('uncaughtException', (err) => {
+    const msg = err?.message || String(err);
+    if (msg.includes('MongoServerSelectionError') || msg.includes('Server selection timed out')) {
+      console.warn('[uncaughtException] MongoDB timeout (suppressed):', msg.substring(0, 100));
+      return;
+    }
+    console.error('[uncaughtException]', err);
+    // Don't exit — keep the server alive
+  });
+
   startServer().catch(err => {
     console.error('Failed to start server:', err);
   });

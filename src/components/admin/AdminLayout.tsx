@@ -162,7 +162,7 @@ const findActiveLabel = (id: string): string => {
 const COMING_SOON_META: Record<string, { description: string; features: string[] }> = {};
 
 export const AdminLayout: React.FC = () => {
-  const { setActiveView, currentUser, setCurrentUser, setIsAuthModalOpen, adminTab, setAdminTab, setIsWhatsAppModalOpen, addToast } = useStore();
+  const { setActiveView, currentUser, setCurrentUser, setIsAuthModalOpen, adminTab, setAdminTab, addToast } = useStore();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -535,8 +535,9 @@ export const AdminLayout: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setIsWhatsAppModalOpen(true)}
+              onClick={() => setAdminTab('support-tickets')}
               className="btn-glossy btn-glossy-pink btn-glossy-sm"
+              title="View storefront support queries & tickets"
             >
               <Headphones className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Live Support</span>
@@ -552,12 +553,14 @@ export const AdminLayout: React.FC = () => {
 
       {/* ===========================================================
           LIVE SUPPORT FAB (purple gradient, bottom-left)
+          Navigates to the Support Tickets page so the admin can see
+          and respond to storefront customer queries.
           =========================================================== */}
       <button
-        onClick={() => setIsWhatsAppModalOpen(true)}
+        onClick={() => setAdminTab('support-tickets')}
         className="admin-fab"
-        aria-label="Open live support chat"
-        title="Live Support"
+        aria-label="View storefront support queries"
+        title="View storefront support queries"
       >
         <MessageCircle className="w-5 h-5" />
       </button>

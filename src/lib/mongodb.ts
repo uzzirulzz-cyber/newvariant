@@ -53,10 +53,12 @@ async function connectMongo(): Promise<{ client: MongoClient; db: Db }> {
 
   globalThis.__mongoConnPromise = (async () => {
     const client = new MongoClient(MONGODB_URI, {
-      // Longer timeout for Atlas cold starts
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
+      // Shorter timeout — fail fast to in-memory fallback rather than
+      // hanging the request for 30s on Atlas cold-starts or unreachable
+      // networks. Atlas typically connects in <3s when reachable.
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 8000,
+      socketTimeoutMS: 15000,
     });
 
     await client.connect();
