@@ -34,7 +34,8 @@ export const ProductManagement: React.FC = () => {
   const [csvUploading, setCsvUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // CSV import — parse CSV text → create products via /api/import/batch
+  // CSV import — handles both simple CSV and WooCommerce export format
+  // Supports quoted fields with embedded commas/newlines
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -42,49 +43,137 @@ export const ProductManagement: React.FC = () => {
 
     try {
       const text = await file.text();
-      const lines = text.split('\n').filter(l => l.trim());
-      if (lines.length < 2) {
+      // Remove BOM
+      const cleanText = text.replace(/^\uFEFF/, '');
+
+      // Parse CSV with proper quote handling
+      const rows: string[][] = [];
+      let currentRow: string[] = [];
+      let currentField = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < cleanText.length; i++) {
+        const char = cleanText[i];
+        if (char === '"') {
+          if (inQuotes && cleanText[i + 1] === '"') {
+            currentField += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === '\n' && !inQuotes) {
+          currentRow.push(currentField);
+          if (currentRow.some(f => f.trim())) rows.push(currentRow);
+          currentRow = [];
+          currentField = '';
+        } else if (char === '\r') {
+          // skip
+        } else {
+          currentField += char;
+        }
+      }
+      if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField);
+        if (currentRow.some(f => f.trim())) rows.push(currentRow);
+      }
+
+      if (rows.length < 2) {
         addToast('error', 'CSV Invalid', 'CSV must have a header row and at least one product row.');
         setCsvUploading(false);
         e.target.value = '';
         return;
       }
 
-      // Parse CSV header
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      // Parse header — strip quotes and lowercase
+      const headers = rows[0].map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
+      // Map category string to our category IDs
+      const mapCategory = (catStr: string): string => {
+        const c = (catStr || '').toLowerCase();
+        if (c.includes('gift card') || c.includes('crypto')) return 'gift-cards';
+        if (c.includes('gaming') || c.includes('game')) return 'gaming';
+        if (c.includes('software') || c.includes('windows') || c.includes('office')) return 'software';
+        if (c.includes('saas') || c.includes('ai') || c.includes('tool')) return 'saas';
+        if (c.includes('stream') || c.includes('netflix') || c.includes('spotify')) return 'streaming';
+        if (c.includes('iptv') || c.includes('tv')) return 'iptv';
+        if (c.includes('projector')) return 'smart-projectors';
+        if (c.includes('coaching') || c.includes('session')) return 'game-coaching';
+        if (c.includes('companion')) return 'gamepal-companion';
+        return 'gaming';
+      };
 
       // Parse each product row
-      const items = lines.slice(1).map(line => {
-        const cols = line.split(',').map(c => c.trim());
+      const items = rows.slice(1).map((cols, idx) => {
         const row: Record<string, string> = {};
-        headers.forEach((h, i) => { row[h] = cols[i] || ''; });
+        headers.forEach((h, i) => { row[h] = (cols[i] || '').trim(); });
+
+        const name = row['name'] || row['title'] || 'Untitled Product';
+        const sku = row['sku'] || `PB-${row['id'] || Date.now()}-${idx}`;
+        const shortDesc = row['short description'] || row['shortdescription'] || '';
+        const desc = (row['description'] || shortDesc).replace(/<[^>]+>/g, '').substring(0, 500);
+        const price = parseFloat(row['regular price'] || row['sale price'] || row['price'] || row['costprice'] || '29.99') || 29.99;
+        const category = mapCategory(row['categories'] || row['category'] || row['categoryid'] || '');
+        const stock = row['in stock?'] === '1' || row['in stock'] === '1' ? 100 : 50;
+        const images = row['images'] || row['imageurl'] || row['image'] || '';
+        const imageUrl = images ? images.split(',')[0].trim().replace(/^"|"$/g, '') : 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg';
+        const attrValues = row['attribute 1 value(s)'] || '';
+
+        // Parse variations from attribute values like "$10 | $25 | $50 | $100"
+        let variations: { type: string; value: string; costPrice: number; stock: number }[] | undefined;
+        if (attrValues) {
+          const parts = attrValues.split('|').map(v => v.trim()).filter(Boolean);
+          if (parts.length > 0) {
+            variations = parts.map(val => ({
+              type: row['attribute 1 name'] || 'Denomination',
+              value: val,
+              costPrice: price * 0.8,
+              stock: 100,
+            }));
+          }
+        }
 
         return {
-          externalId: row['sku'] || row['id'] || `csv-${Date.now()}-${Math.random()}`,
-          title: row['title'] || row['name'] || 'Untitled Product',
-          description: row['description'] || row['shortdescription'] || '',
-          category: row['category'] || row['categoryid'] || 'digital',
-          costPrice: parseFloat(row['costprice'] || row['price'] || '29.99'),
-          stock: parseInt(row['stock'] || '50'),
-          sku: row['sku'] || `PB-${Math.floor(1000 + Math.random() * 9000)}`,
-          imageUrl: row['imageurl'] || row['image'] || 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg',
-          productType: (row['type'] || row['producttype'] || 'digital') as 'digital' | 'physical_projector',
+          externalId: sku,
+          title: name,
+          description: desc,
+          category: category,
+          costPrice: price * 0.8,
+          stock: stock,
+          sku: sku,
+          imageUrl: imageUrl,
+          productType: 'digital' as const,
+          variations: variations,
         };
       });
 
-      // Send to import API
-      const res = await fetch('/api/import/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, markupType: 'percentage', markupValue: 20, autoApprove: true }),
-      });
-      const data = await res.json();
+      addToast('info', 'CSV Parsed', `${items.length} products found. Importing in batches...`);
 
-      if (data.success) {
-        addToast('success', 'CSV Imported', `${data.importJob.importedCount} products imported successfully.`);
-        window.location.reload();
+      // Import in batches of 20 to avoid payload size limits
+      const batchSize = 20;
+      let totalImported = 0;
+
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        try {
+          const res = await fetch('/api/import/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: batch, markupType: 'percentage', markupValue: 25, autoApprove: true }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            totalImported += data.importJob.importedCount;
+          }
+        } catch {
+          // Continue with next batch
+        }
+      }
+
+      if (totalImported > 0) {
+        addToast('success', 'CSV Imported', `${totalImported} products imported successfully. Reloading...`);
+        setTimeout(() => window.location.reload(), 2000);
       } else {
-        addToast('error', 'Import Failed', data.error || 'Could not import CSV.');
+        addToast('error', 'Import Failed', 'No products were imported. Check the CSV format.');
       }
     } catch {
       addToast('error', 'CSV Error', 'Could not parse the CSV file.');
