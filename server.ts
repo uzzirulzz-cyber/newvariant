@@ -884,9 +884,9 @@ export function createApiApp(): Express {
     });
   });
 
-  // POST /api/auth/signup — customer self-registration
+  // POST /api/auth/signup — customer self-registration with name, email, country, mobile
   app.post('/api/auth/signup', async (req, res) => {
-    const { email, password, name } = req.body;
+    const { email, password, name, country, phone } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ success: false, error: 'Email and password are required.' });
@@ -912,6 +912,8 @@ export function createApiApp(): Express {
       name: name || email.split('@')[0],
       email: email.toLowerCase(),
       role: 'customer',
+      phone: phone || undefined,
+      country: country || undefined,
       twoFactorEnabled: false,
       addresses: [],
       totalSpent: 0,
@@ -971,6 +973,85 @@ export function createApiApp(): Express {
     });
 
     return res.json({ success: true, message: 'Password updated successfully.' });
+  });
+
+  // POST /api/auth/forgot-password — generate a reset token and return it
+  // (In production this would send an email; here we return the token so the
+  // UI can display it for the user to copy. The token expires in 15 minutes.)
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required.' });
+    }
+
+    const user = await repo.findUserWithPassword(email);
+    if (!user) {
+      // Don't reveal whether the email exists — return generic success
+      return res.json({ success: true, message: 'If an account with that email exists, a reset link has been generated.' });
+    }
+
+    // Generate a secure reset token (random hex string)
+    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const resetTokenExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+    await repo.updateUserById(user.id, { resetToken, resetTokenExpires });
+
+    // In production, send this via email. For this demo, return it directly.
+    return res.json({
+      success: true,
+      message: 'Reset token generated. Use it to set a new password.',
+      resetToken,
+      expiresAt: new Date(resetTokenExpires).toISOString(),
+    });
+  });
+
+  // POST /api/auth/reset-password — verify reset token and set new password
+  app.post('/api/auth/reset-password', async (req, res) => {
+    const { email, resetToken, newPassword } = req.body;
+
+    if (!email || !resetToken || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Email, reset token, and new password are required.' });
+    }
+
+    const pwCheck = validatePassword(newPassword);
+    if (!pwCheck.valid) {
+      return res.status(400).json({ success: false, error: pwCheck.message });
+    }
+
+    const user = await repo.findUserWithPassword(email);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Account not found.' });
+    }
+
+    if (!user.resetToken || user.resetToken !== resetToken) {
+      return res.status(401).json({ success: false, error: 'Invalid reset token.' });
+    }
+
+    if (!user.resetTokenExpires || Date.now() > user.resetTokenExpires) {
+      return res.status(401).json({ success: false, error: 'Reset token has expired. Please request a new one.' });
+    }
+
+    // Set the new password and clear the reset token
+    const success = await repo.changeUserPassword(user.id, newPassword);
+    if (!success) {
+      return res.status(500).json({ success: false, error: 'Failed to update password.' });
+    }
+
+    // Clear the reset token so it can't be reused
+    await repo.updateUserById(user.id, { resetToken: undefined, resetTokenExpires: undefined });
+
+    await repo.createAdminLog({
+      id: `log-${Date.now()}`,
+      adminName: user.name,
+      adminEmail: user.email,
+      action: 'Password Reset via Token',
+      targetType: 'settings',
+      targetId: user.id,
+      details: `User ${user.email} reset their password using a forgot-password token.`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ success: true, message: 'Password reset successfully. You can now log in with your new password.' });
   });
 
   // GET /api/auth/me — return the current user (placeholder — in production,

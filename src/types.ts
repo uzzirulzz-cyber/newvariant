@@ -42,6 +42,7 @@ export interface User {
   role: Role;
   avatarUrl?: string;
   phone?: string;
+  country?: string;
   twoFactorEnabled: boolean;
   addresses: UserAddress[];
   totalSpent: number;
@@ -51,6 +52,8 @@ export interface User {
   createdAt: string;
   lastLogin?: string;
   passwordHash?: string; // bcrypt hash — never expose to client, never log
+  resetToken?: string; // temporary token for password reset — never expose to client
+  resetTokenExpires?: number; // epoch ms when reset token expires
 }
 
 export interface Category {

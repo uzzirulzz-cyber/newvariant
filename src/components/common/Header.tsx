@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { useAuthStore } from '../../store/useAuthStore';
 import { CategoryIcon } from './CategoryIcon';
 import {
   Search,
@@ -24,7 +25,8 @@ import {
   Cpu,
   Tv,
   Radio,
-  Projector
+  Projector,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -41,6 +43,7 @@ export const Header: React.FC = () => {
     wishlist,
     setIsWishlistOpen,
     currentUser,
+    setCurrentUser,
     setIsAuthModalOpen,
     setIsCustomerPortalOpen,
     setIsWhatsAppModalOpen,
@@ -55,7 +58,8 @@ export const Header: React.FC = () => {
     setProductTypeFilter,
     navItems,
     activePromoFilter,
-    setActivePromoFilter
+    setActivePromoFilter,
+    addToast
   } = useStore();
 
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
@@ -489,6 +493,7 @@ export const Header: React.FC = () => {
 
                     {/* Admin Console access removed from storefront — accessible only via /admin URL */}
 
+                    {/* Sign In / Sign Up */}
                     <button
                       onClick={() => {
                         setIsAuthModalOpen(true);
@@ -496,8 +501,35 @@ export const Header: React.FC = () => {
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-white/5 rounded-xl transition-colors"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Switch Role Demo
+                      <Shield className="w-3.5 h-3.5" />
+                      Sign In / Sign Up
+                    </button>
+
+                    {/* Logout button — calls Zustand auth store logout */}
+                    <button
+                      onClick={() => {
+                        useAuthStore.getState().logout();
+                        // Also clear the legacy StoreContext user
+                        setCurrentUser({
+                          id: 'guest',
+                          name: 'Guest',
+                          email: 'guest@playbeat.digital',
+                          role: 'customer',
+                          twoFactorEnabled: false,
+                          addresses: [],
+                          totalSpent: 0,
+                          ordersCount: 0,
+                          wishlist: [],
+                          status: 'active',
+                          createdAt: new Date().toISOString(),
+                        });
+                        addToast('info', 'Signed Out', 'You have been logged out.');
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      Sign Out
                     </button>
                   </div>
                 </motion.div>

@@ -67,8 +67,8 @@ export function isAdminRole(role: Role): boolean {
  * Strip sensitive fields (passwordHash) from a user object before sending
  * it to the client. Never expose the hash.
  */
-export function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
-  const { passwordHash, ...safe } = user;
+export function sanitizeUser(user: User): Omit<User, 'passwordHash' | 'resetToken' | 'resetTokenExpires'> {
+  const { passwordHash, resetToken, resetTokenExpires, ...safe } = user;
   return safe;
 }
 
