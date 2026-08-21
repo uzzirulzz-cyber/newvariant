@@ -231,8 +231,9 @@ export const AdminDashboard: React.FC = () => {
           Each card: solid colored bg, large bold number, trend badge, mini sparkline
           ============================================ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Revenue — emerald */}
-        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
+        {/* Revenue — emerald glossy card */}
+        <button className="text-left rounded-xl p-5 overflow-hidden relative border-2 border-emerald-400/30 transition-all hover:-translate-y-0.5"
+          style={{ background: 'linear-gradient(180deg, #047857 0%, #064E3B 100%)', boxShadow: '0 10px 25px rgba(4,120,87,0.3), 0 0 20px rgba(16,185,129,0.15), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] uppercase text-emerald-100 tracking-wider font-mono font-bold">Total Revenue</div>
             <TrendingUp className="w-4 h-4 text-emerald-200" />
@@ -248,8 +249,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </button>
 
-        {/* Orders — blue */}
-        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
+        {/* Orders — blue glossy card */}
+        <button className="text-left rounded-xl p-5 overflow-hidden relative border-2 border-blue-400/30 transition-all hover:-translate-y-0.5"
+          style={{ background: 'linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)', boxShadow: '0 10px 25px rgba(37,99,235,0.3), 0 0 20px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] uppercase text-blue-100 tracking-wider font-mono font-bold">Total Orders</div>
             <ShoppingCart className="w-4 h-4 text-blue-200" />
@@ -265,8 +267,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </button>
 
-        {/* Products — purple */}
-        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-purple-600 to-purple-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
+        {/* Products — purple glossy card */}
+        <button className="text-left rounded-xl p-5 overflow-hidden relative border-2 border-purple-400/30 transition-all hover:-translate-y-0.5"
+          style={{ background: 'linear-gradient(180deg, #7E22CE 0%, #581C87 100%)', boxShadow: '0 10px 25px rgba(126,34,206,0.3), 0 0 20px rgba(147,51,234,0.15), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] uppercase text-purple-100 tracking-wider font-mono font-bold">Products</div>
             <Package className="w-4 h-4 text-purple-200" />
@@ -282,19 +285,20 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </button>
 
-        {/* Low Stock — amber/red gradient */}
-        <button className="text-left rounded-xl p-5 bg-gradient-to-br from-amber-600 to-red-600 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
+        {/* Low Stock — orange/red glossy card */}
+        <button className="text-left rounded-xl p-5 overflow-hidden relative border-2 border-orange-400/30 transition-all hover:-translate-y-0.5"
+          style={{ background: 'linear-gradient(180deg, #EA580C 0%, #9A3412 100%)', boxShadow: '0 10px 25px rgba(234,88,12,0.3), 0 0 20px rgba(249,115,22,0.15), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] uppercase text-amber-100 tracking-wider font-mono font-bold">Low Stock Alerts</div>
-            <AlertTriangle className="w-4 h-4 text-amber-200" />
+            <div className="text-[10px] uppercase text-orange-100 tracking-wider font-mono font-bold">Low Stock Alerts</div>
+            <AlertTriangle className="w-4 h-4 text-orange-200" />
           </div>
           <div className="text-2xl font-bold text-white font-mono">{products.filter(p => p.stock <= p.lowStockThreshold).length}</div>
-          <div className="text-[10px] text-amber-200 mt-1 flex items-center gap-1">
+          <div className="text-[10px] text-orange-200 mt-1 flex items-center gap-1">
             <ArrowUpRight className="w-3 h-3" /> needs attention
           </div>
           <div className="flex items-end gap-0.5 mt-3 h-8">
             {[20, 25, 30, 20, 35, 40, 30, 45, 50, 40].map((h, i) => (
-              <div key={i} className="flex-1 bg-amber-300/40 rounded-sm" style={{ height: `${h}%` }} />
+              <div key={i} className="flex-1 bg-orange-300/40 rounded-sm" style={{ height: `${h}%` }} />
             ))}
           </div>
         </button>
