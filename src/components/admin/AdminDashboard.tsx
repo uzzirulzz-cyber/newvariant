@@ -189,7 +189,7 @@ export const AdminDashboard: React.FC = () => {
                   onClick={() => setDashboardTab(tab.id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
                     dashboardTab === tab.id
-                      ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
+                      ? 'btn-glossy btn-glossy-yellow btn-glossy-sm'
                       : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
@@ -200,21 +200,21 @@ export const AdminDashboard: React.FC = () => {
             })}
           </div>
 
-          {/* Glossy date-range selector pill */}
-          <button className="btn-glossy btn-glossy-dark btn-glossy-sm">
+          {/* Glossy date-range selector pill — yellow */}
+          <button className="btn-glossy btn-glossy-yellow btn-glossy-sm">
             <Calendar className="w-3.5 h-3.5" />
             <span>{timeRange === '1D' ? 'Today' : timeRange === '1W' ? 'This Week' : timeRange === '1M' ? 'This Month' : 'This Year'}</span>
             <ChevronDown className="w-3 h-3" />
           </button>
 
-          {/* Glossy export button — emerald */}
-          <button className="btn-glossy btn-glossy-emerald btn-glossy-sm">
+          {/* Glossy export button — yellow */}
+          <button className="btn-glossy btn-glossy-yellow btn-glossy-sm">
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          {/* Glossy circular settings gear — purple */}
-          <button className="btn-glossy btn-glossy-purple btn-glossy-circle" aria-label="Settings">
+          {/* Glossy circular settings gear — yellow */}
+          <button className="btn-glossy btn-glossy-yellow btn-glossy-circle" aria-label="Settings">
             <Settings className="w-4 h-4" />
           </button>
 

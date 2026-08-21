@@ -463,7 +463,7 @@ export const AdminLayout: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setIsCategoryMenuOpen((v) => !v)}
-                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400 hover:text-emerald-300 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-400 hover:text-amber-300 transition-colors"
               >
                 <span>All Categories</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
@@ -514,7 +514,7 @@ export const AdminLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Right side: Storefront + Admin Panel pill + Live Support */}
+          {/* Right side: Storefront + Admin Panel pill (yellow gradient) + Live Support */}
           <div className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => setActiveView('store')}
@@ -525,10 +525,10 @@ export const AdminLayout: React.FC = () => {
 
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="admin-teal-pill"
+              className="btn-glossy btn-glossy-yellow btn-glossy-sm"
               aria-label={`Signed in as ${currentUser.role}`}
             >
-              <span className="w-4 h-4 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[10px] font-bold">
+              <span className="w-4 h-4 rounded-full bg-black/20 text-black flex items-center justify-center text-[10px] font-bold">
                 {currentUser.name.charAt(0).toUpperCase()}
               </span>
               <span className="hidden sm:inline">Admin Panel</span>
@@ -536,7 +536,7 @@ export const AdminLayout: React.FC = () => {
 
             <button
               onClick={() => setIsWhatsAppModalOpen(true)}
-              className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
+              className="btn-glossy btn-glossy-yellow btn-glossy-sm"
             >
               <Headphones className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Live Support</span>
