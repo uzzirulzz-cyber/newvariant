@@ -1,3 +1,7 @@
+// Load environment variables from .env BEFORE any other imports that read them.
+// This must be the first import so process.env.MONGODB_URI etc. are populated
+// when src/lib/mongodb.ts is loaded.
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -43,6 +47,49 @@ async function startServer() {
       uptime: process.uptime(),
       timestamp: new Date().toISOString()
     });
+  });
+
+  // ----------------------------------------------------
+  // DATABASE HEALTH (MongoDB Atlas connection probe)
+  // ----------------------------------------------------
+  app.get('/api/health/db', async (req, res) => {
+    try {
+      // Dynamic import so the server still boots when MONGODB_URI is unset.
+      const { pingMongo, isMongoConfigured, mongoHostSanitized } = await import('./src/lib/mongodb');
+      if (!isMongoConfigured) {
+        return res.status(503).json({
+          ok: false,
+          configured: false,
+          error: 'MONGODB_URI is not set. Add it to .env (see .env.example).',
+          host: 'not-configured',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const result = await pingMongo();
+      if (result.ok) {
+        return res.json({
+          ok: true,
+          configured: true,
+          host: mongoHostSanitized,
+          dbName: result.dbName,
+          serverInfo: result.serverInfo,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return res.status(503).json({
+        ok: false,
+        configured: true,
+        host: mongoHostSanitized,
+        error: result.error,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        ok: false,
+        error: err.message || String(err),
+        timestamp: new Date().toISOString(),
+      });
+    }
   });
 
   // ----------------------------------------------------
