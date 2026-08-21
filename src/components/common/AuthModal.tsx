@@ -362,7 +362,7 @@ export const AuthModal: React.FC = () => {
             <div className="mt-4 p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 flex items-start gap-2 text-[10px] text-neutral-400 leading-snug">
               <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
               <span>
-                Default admin: <span className="font-mono text-white">admin@playbeat.digital</span> · Sign up creates a customer account. Passwords are hashed with bcrypt — we never store plaintext.
+                Sign up creates a customer account. Passwords are hashed with bcrypt — we never store plaintext.
               </span>
             </div>
           </motion.div>
