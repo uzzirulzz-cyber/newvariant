@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Product, ProductType } from '../../types';
 import { ProductEditorModal } from './ProductEditorModal';
 import {
@@ -14,16 +15,127 @@ import {
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
-  Eye
+  Eye,
+  Upload,
+  RotateCcw,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 
 export const ProductManagement: React.FC = () => {
-  const { products, deleteProduct, formatPrice, setSelectedProduct, addToast } = useStore();
+  const { products, deleteProduct, formatPrice, setSelectedProduct, addToast, setCurrentUser, setActiveView } = useStore();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | ProductType>('all');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // CSV import — parse CSV text → create products via /api/import/batch
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvUploading(true);
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) {
+        addToast('error', 'CSV Invalid', 'CSV must have a header row and at least one product row.');
+        setCsvUploading(false);
+        e.target.value = '';
+        return;
+      }
+
+      // Parse CSV header
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+      // Parse each product row
+      const items = lines.slice(1).map(line => {
+        const cols = line.split(',').map(c => c.trim());
+        const row: Record<string, string> = {};
+        headers.forEach((h, i) => { row[h] = cols[i] || ''; });
+
+        return {
+          externalId: row['sku'] || row['id'] || `csv-${Date.now()}-${Math.random()}`,
+          title: row['title'] || row['name'] || 'Untitled Product',
+          description: row['description'] || row['shortdescription'] || '',
+          category: row['category'] || row['categoryid'] || 'digital',
+          costPrice: parseFloat(row['costprice'] || row['price'] || '29.99'),
+          stock: parseInt(row['stock'] || '50'),
+          sku: row['sku'] || `PB-${Math.floor(1000 + Math.random() * 9000)}`,
+          imageUrl: row['imageurl'] || row['image'] || 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a2604e96f45.jpg',
+          productType: (row['type'] || row['producttype'] || 'digital') as 'digital' | 'physical_projector',
+        };
+      });
+
+      // Send to import API
+      const res = await fetch('/api/import/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, markupType: 'percentage', markupValue: 20, autoApprove: true }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        addToast('success', 'CSV Imported', `${data.importJob.importedCount} products imported successfully.`);
+        window.location.reload();
+      } else {
+        addToast('error', 'Import Failed', data.error || 'Could not import CSV.');
+      }
+    } catch {
+      addToast('error', 'CSV Error', 'Could not parse the CSV file.');
+    }
+    setCsvUploading(false);
+    e.target.value = '';
+  };
+
+  // Reset database
+  const handleResetDb = async () => {
+    if (!window.confirm('This will DELETE all products, orders, users, and settings. The database will be re-seeded with default data. Continue?')) return;
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-db', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', 'Database Reset', 'All data wiped and re-seeded. Reloading...');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        addToast('error', 'Reset Failed', data.error || 'Could not reset database.');
+      }
+    } catch {
+      addToast('error', 'Reset Failed', 'Network error.');
+    }
+    setIsResetting(false);
+  };
+
+  // Logout super admin everywhere
+  const handleLogoutEverywhere = async () => {
+    if (!window.confirm('This will log out the super admin from ALL sessions and devices. Continue?')) return;
+    setIsLoggingOut(true);
+    try {
+      // Clear Zustand auth store
+      useAuthStore.getState().logout();
+
+      // Clear StoreContext
+      setCurrentUser({
+        id: 'guest', name: 'Guest', email: '', role: 'customer',
+        twoFactorEnabled: false, addresses: [], totalSpent: 0, ordersCount: 0,
+        wishlist: [], status: 'active', createdAt: new Date().toISOString(),
+      });
+
+      addToast('info', 'Logged Out Everywhere', 'Super admin session terminated on all devices.');
+      setActiveView('store');
+      window.history.pushState({ view: 'store' }, '', '/');
+      setTimeout(() => window.location.reload(), 1000);
+    } catch {
+      addToast('error', 'Logout Failed', 'Could not complete global logout.');
+    }
+    setIsLoggingOut(false);
+  };
 
   const filteredProducts = products.filter(p => {
     if (typeFilter !== 'all' && p.productType !== typeFilter) return false;
@@ -52,16 +164,56 @@ export const ProductManagement: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setEditingProduct(null);
-            setIsEditorOpen(true);
-          }}
-          className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(220,38,38,0.2)] flex items-center gap-2 shrink-0 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Product</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* CSV Import */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleCsvUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={csvUploading}
+            className="btn-glossy btn-glossy-emerald btn-glossy-sm"
+          >
+            {csvUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            <span>CSV Import</span>
+          </button>
+
+          {/* Add New Product */}
+          <button
+            onClick={() => {
+              setEditingProduct(null);
+              setIsEditorOpen(true);
+            }}
+            className="btn-glossy btn-glossy-yellow btn-glossy-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Product</span>
+          </button>
+
+          {/* Dashboard Reset */}
+          <button
+            onClick={handleResetDb}
+            disabled={isResetting}
+            className="btn-glossy btn-glossy-red btn-glossy-sm"
+          >
+            {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+            <span>Reset DB</span>
+          </button>
+
+          {/* Logout Super Admin Everywhere */}
+          <button
+            onClick={handleLogoutEverywhere}
+            disabled={isLoggingOut}
+            className="btn-glossy btn-glossy-dark btn-glossy-sm"
+          >
+            {isLoggingOut ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+            <span>Logout All</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
