@@ -47,6 +47,7 @@ import {
   AreaChart,
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import { WeatherWidget } from './WeatherWidget';
 
 /**
  * New admin dashboard matching the screenshot.
@@ -235,6 +236,14 @@ export const AdminDashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ============================================
+          WEATHER + CLOCK WIDGET
+          Live local time + current weather + 4-day forecast.
+          Uses the free Open-Meteo API (no API key required).
+          City is persisted to localStorage so the user's choice is remembered.
+          ============================================ */}
+      <WeatherWidget />
 
       {/* ============================================
           COLORFUL KPI CARDS WITH SPARKLINES (Flare UI style)
