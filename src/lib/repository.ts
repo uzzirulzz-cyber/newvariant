@@ -33,6 +33,7 @@ import type {
   Product, Category, User, Order, Coupon, AdminLog,
   G2GSupplierConnector, ContentSection, ImportJob, OrderStatus,
 } from '../types';
+import { hashPassword } from './auth';
 
 // ============================================================
 // In-memory fallback state (used when MongoDB is not configured)
@@ -60,17 +61,48 @@ async function seedIfEmpty(): Promise<void> {
     try {
       const db = await getDb();
 
-      // Check products first — if they exist, the DB was already seeded
+      // Check products first — if they exist, the catalog was already seeded.
+      // But we ALWAYS upsert the default admin so its password hash is current.
       const productsCount = await db.collection('products').countDocuments();
+      const adminPasswordHash = await hashPassword('playbeat1122');
+      const now = new Date().toISOString();
+
+      // Use updateOne with $set (matched by email) so we don't trip the unique
+      // email index if an admin with a different ID but same email already exists.
+      await db.collection('users').updateOne(
+        { email: 'admin@playbeat.digital' },
+        {
+          $set: {
+            name: 'PlayBeat Super Admin',
+            role: 'super_admin',
+            twoFactorEnabled: false,
+            addresses: [],
+            totalSpent: 0,
+            ordersCount: 0,
+            wishlist: [],
+            status: 'active',
+            passwordHash: adminPasswordHash,
+            lastLogin: null,
+          },
+          $setOnInsert: {
+            id: 'usr-admin-default',
+            email: 'admin@playbeat.digital',
+            createdAt: now,
+            _seededAt: now,
+          },
+        },
+        { upsert: true }
+      );
+
       if (productsCount > 0) {
-        console.info('[repository] MongoDB already has data — skipping seed.');
+        console.info('[repository] MongoDB already has catalog data — skipping catalog seed. Admin password hash ensured.');
         return;
       }
       console.info('[repository] Seeding MongoDB from mock data (using upsert to handle partial seeds)...');
 
       // Use upsert instead of insertMany so we don't crash on duplicate keys
       // if some collections were partially seeded from a previous run.
-      const now = new Date().toISOString();
+      // (Note: `now` was already declared above for the admin upsert.)
 
       const productOps = INITIAL_PRODUCTS.map(p => ({
         replaceOne: { filter: { id: p.id }, replacement: { ...p, _seededAt: now }, upsert: true }
@@ -81,6 +113,9 @@ async function seedIfEmpty(): Promise<void> {
       const userOps = INITIAL_USERS.map(u => ({
         replaceOne: { filter: { id: u.id }, replacement: { ...u, _seededAt: now }, upsert: true }
       }));
+
+      // The default admin (with password hash) was already upserted above
+      // before the productsCount check — no need to re-seed it here.
       const orderOps = INITIAL_ORDERS.map(o => ({
         replaceOne: { filter: { id: o.id }, replacement: { ...o, _seededAt: now }, upsert: true }
       }));
@@ -101,7 +136,7 @@ async function seedIfEmpty(): Promise<void> {
         db.collection('g2g_connector').replaceOne({}, { ...INITIAL_G2G_CONNECTOR, _seededAt: now }, { upsert: true }),
         db.collection('content').replaceOne({}, { ...INITIAL_CONTENT, _seededAt: now }, { upsert: true }),
       ]);
-      console.info('[repository] Seed complete.');
+      console.info('[repository] Seed complete. Default admin: admin@playbeat.digital (password: playbeat1122 — CHANGE IMMEDIATELY)');
     } catch (err) {
       console.error('[repository] Seed failed:', err);
       // Reset so a future call can retry
@@ -310,6 +345,115 @@ export async function updateUserByEmail(email: string, updates: Partial<User>): 
     const idx = memUsers.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
     if (idx !== -1) memUsers[idx] = { ...memUsers[idx], ...updates };
   }
+}
+
+/**
+ * Find a user by email INCLUDING their passwordHash.
+ * Only used internally by the auth layer — never return this to the client.
+ */
+export async function findUserWithPassword(email: string): Promise<User | null> {
+  if (isMongoConfigured) {
+    await ensureSeeded();
+    const db = await getDb();
+    const doc = await db.collection('users').findOne(
+      { email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+      { projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (doc as unknown as User) || null;
+  }
+  return memUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+}
+
+/**
+ * Update a user by ID. Used by Account Management and Super Agent Management.
+ */
+export async function updateUserById(id: string, updates: Partial<User>): Promise<User | null> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('users').findOneAndUpdate(
+      { id },
+      { $set: updates },
+      { returnDocument: 'after', projection: { _seededAt: 0, _id: 0 } }
+    );
+    return (result as unknown as User) || null;
+  }
+  const idx = memUsers.findIndex(u => u.id === id);
+  if (idx === -1) return null;
+  memUsers[idx] = { ...memUsers[idx], ...updates };
+  return memUsers[idx];
+}
+
+/**
+ * Delete a user by ID.
+ */
+export async function deleteUserById(id: string): Promise<boolean> {
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('users').deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+  const before = memUsers.length;
+  const filtered = memUsers.filter(u => u.id !== id);
+  if (filtered.length === before) return false;
+  memUsers = filtered;
+  return true;
+}
+
+/**
+ * Suspend or reactivate a user.
+ */
+export async function setUserStatus(id: string, status: 'active' | 'suspended' | 'pending_verification'): Promise<User | null> {
+  return updateUserById(id, { status });
+}
+
+/**
+ * Change a user's password. Hashes the new password before storing.
+ */
+export async function changeUserPassword(id: string, newPassword: string): Promise<boolean> {
+  const passwordHash = await hashPassword(newPassword);
+  if (isMongoConfigured) {
+    const db = await getDb();
+    const result = await db.collection('users').updateOne({ id }, { $set: { passwordHash } });
+    return result.modifiedCount > 0;
+  }
+  const idx = memUsers.findIndex(u => u.id === id);
+  if (idx === -1) return false;
+  memUsers[idx].passwordHash = passwordHash;
+  return true;
+}
+
+/**
+ * Reset the entire database — drops all collections and re-seeds.
+ * Used by the "Reset Dashboard" button in the admin panel.
+ * DANGEROUS: this wipes all orders, users, products, etc.
+ */
+export async function resetDatabase(): Promise<void> {
+  if (!isMongoConfigured) {
+    // In-memory mode: just re-init the arrays
+    memProducts = [...INITIAL_PRODUCTS];
+    memCategories = [...INITIAL_CATEGORIES];
+    memUsers = [...INITIAL_USERS];
+    memOrders = [...INITIAL_ORDERS];
+    memCoupons = [...INITIAL_COUPONS];
+    memAdminLogs = [...INITIAL_ADMIN_LOGS];
+    memImportJobs = [];
+    memG2GConnector = { ...INITIAL_G2G_CONNECTOR };
+    memContent = { ...INITIAL_CONTENT };
+    // Force re-seed on next access
+    seedPromise = null;
+    return;
+  }
+
+  const db = await getDb();
+  const collections = ['products', 'categories', 'users', 'orders', 'coupons', 'admin_logs', 'g2g_connector', 'content', 'import_jobs'];
+  await Promise.all(collections.map(name => db.collection(name).deleteMany({})));
+
+  // Force re-seed on next access
+  seedPromise = null;
+  // Clear the cached client so the next request gets a fresh connection
+  globalThis.__mongoConnPromise = undefined;
+  globalThis.__mongoClient = undefined;
+  globalThis.__mongoDb = undefined;
 }
 
 // ============================================================

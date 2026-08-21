@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import {
   TrendingUp,
@@ -17,6 +17,10 @@ import {
   CreditCard,
   Database,
   Sparkles,
+  RotateCcw,
+  AlertTriangle,
+  Loader2,
+  X,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -29,6 +33,7 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
+import { motion, AnimatePresence } from 'motion/react';
 
 /**
  * New admin dashboard matching the screenshot.
@@ -38,12 +43,37 @@ import {
  *   Row 2: System Status (list) + Pending Approvals (empty state) + Live Notifications
  *   Row 3: Recent Orders table + Top Products list
  *
- * Theme: deep black (#0a0b0d) sidebar + #151a23 cards, gold (#f59e0b) accents for prices,
- * blue (#3b82f6) for charts, purple (#8b5cf6) FAB. Uses the .admin-card / .admin-pill-* utilities
- * defined in src/index.css.
+ * Includes a "Reset Dashboard" button that wipes all MongoDB data and re-seeds
+ * from mock data (useful for demos and testing).
  */
 export const AdminDashboard: React.FC = () => {
-  const { orders, products, formatPrice } = useStore();
+  const { orders, products, formatPrice, addToast } = useStore();
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+
+  const handleReset = async () => {
+    if (confirmText !== 'RESET') {
+      addToast('error', 'Confirmation Required', 'Type RESET to confirm.');
+      return;
+    }
+    setResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-db', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', 'Database Reset', 'All data has been wiped and re-seeded. Reloading...');
+        setIsResetOpen(false);
+        setConfirmText('');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        addToast('error', 'Reset Failed', data.error || 'Could not reset database.');
+      }
+    } catch {
+      addToast('error', 'Reset Failed', 'Network error.');
+    }
+    setResetting(false);
+  };
 
   // ---- Mock data for the dashboard cards (kept lightweight, no API churn) ----
 
@@ -119,6 +149,28 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      {/* ============================================
+          DASHBOARD HEADER + RESET BUTTON
+          ============================================ */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center">
+            <Activity className="w-5 h-5 text-blue-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white font-display">Executive Dashboard</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Live metrics, orders, and product performance.</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setIsResetOpen(true)}
+          className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors"
+        >
+          <RotateCcw className="w-4 h-4" />
+          <span>Reset Dashboard</span>
+        </button>
+      </div>
+
       {/* ============================================
           ROW 1 — KEY METRICS
           ============================================ */}
@@ -467,6 +519,43 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ============================================
+          RESET DASHBOARD CONFIRMATION MODAL
+          ============================================ */}
+      <AnimatePresence>
+        {isResetOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsResetOpen(false)} className="absolute inset-0 bg-black/85 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-md rounded-2xl bg-[#151a23] border border-red-500/30 shadow-2xl p-6 z-10" role="dialog" aria-modal="true">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 text-red-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white font-display">Reset Dashboard</h3>
+                </div>
+                <button onClick={() => setIsResetOpen(false)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20 text-[11px] text-red-300 leading-relaxed mb-4">
+                <AlertTriangle className="w-4 h-4 inline mr-1" />
+                This will permanently delete ALL data in MongoDB (products, orders, users, coupons, logs) and re-seed with default mock data. This action cannot be undone.
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-400 mb-1">Type <span className="font-mono font-bold text-red-400">RESET</span> to confirm</label>
+                <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="RESET" className="input-sharp w-full px-3 py-2 text-xs text-white font-mono uppercase" />
+              </div>
+              <div className="flex items-center gap-2 pt-4">
+                <button onClick={() => setIsResetOpen(false)} className="flex-1 py-2.5 rounded-lg bg-[#1f2937] hover:bg-[#2a3344] text-gray-300 text-xs font-bold uppercase tracking-wider">Cancel</button>
+                <button onClick={handleReset} disabled={resetting || confirmText !== 'RESET'} className="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {resetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                  <span>Reset Everything</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

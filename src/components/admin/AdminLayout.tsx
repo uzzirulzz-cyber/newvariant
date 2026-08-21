@@ -29,6 +29,8 @@ import { FinancialBalance } from './FinancialBalance';
 import { JazzCashMerchant } from './JazzCashMerchant';
 import { PaymentProofs } from './PaymentProofs';
 import { SecurityAuditLogs } from './SecurityAuditLogs';
+import { AccountManagement } from './AccountManagement';
+import { SuperAgentManagement } from './SuperAgentManagement';
 import {
   LayoutDashboard,
   Globe,
@@ -49,7 +51,9 @@ import {
   Lock,
   Store,
   ShieldAlert,
+  ShieldCheck,
   FileCheck2,
+  UserCog,
   Menu,
   X,
   Headphones,
@@ -108,6 +112,7 @@ const NAVIGATION_SECTIONS: NavSection[] = [
     title: 'Customers & Support',
     items: [
       { id: 'customers', label: 'Customer Accounts', icon: Users },
+      { id: 'account-management', label: 'Account Management', icon: UserCog },
       { id: 'support-tickets', label: 'Support Tickets', icon: Ticket },
     ],
   },
@@ -134,6 +139,7 @@ const NAVIGATION_SECTIONS: NavSection[] = [
       { id: 'jazzcash', label: 'JazzCash & Merchant', icon: Store },
       { id: 'payment-proofs', label: 'Payment Proofs', icon: FileCheck2 },
       { id: 'security', label: 'Security & Audit Logs', icon: ShieldAlert },
+      { id: 'super-agents', label: 'Super Agent Management', icon: ShieldCheck },
     ],
   },
 ];
@@ -225,6 +231,8 @@ export const AdminLayout: React.FC = () => {
       // Customer Accounts — NEW
       case 'customers':
         return <CustomerAccounts />;
+      case 'account-management':
+        return <AccountManagement />;
 
       // Support Tickets — NEW
       case 'support-tickets':
@@ -257,6 +265,8 @@ export const AdminLayout: React.FC = () => {
       // Security & Audit Logs — NEW
       case 'security':
         return <SecurityAuditLogs />;
+      case 'super-agents':
+        return <SuperAgentManagement />;
 
       // Growth & Security (existing)
       case 'roles':

@@ -19,6 +19,10 @@ import { Product, Order, User, G2GSupplierConnector, ContentSection, Coupon, Adm
 import { processSmartProductImport, RawImportItem } from './src/utils/smartImportEngine';
 import { deduplicateVariations } from './src/utils/variantProtection';
 import * as repo from './src/lib/repository';
+import {
+  hashPassword, comparePassword, generateToken, sanitizeUser,
+  isValidEmail, validatePassword, isAdminRole,
+} from './src/lib/auth';
 
 /**
  * Create the Express app with all API routes registered.
@@ -834,38 +838,336 @@ export function createApiApp(): Express {
   });
 
   // ----------------------------------------------------
-  // AUTH API
+  // AUTH API — real password-based authentication
   // ----------------------------------------------------
+
+  // POST /api/auth/login — validate email + password against bcrypt hash
   app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
-    const user = await repo.findUserByEmail(email || '');
-    if (user) {
-      return res.json({
-        success: true,
-        user,
-        token: `pb_jwt_${user.id}_${Date.now()}`
-      });
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required.' });
     }
-    // Auto register as customer if not found for testing demo
+
+    // Look up the user WITH their password hash (internal only)
+    const user = await repo.findUserWithPassword(email);
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+    }
+
+    // Check if the user is suspended
+    if (user.status === 'suspended') {
+      return res.status(403).json({ success: false, error: 'This account has been suspended. Contact support.' });
+    }
+
+    // Validate password against the stored bcrypt hash.
+    // If the user has no passwordHash (legacy seed without one), reject.
+    if (!user.passwordHash) {
+      return res.status(401).json({ success: false, error: 'Account has no password set. Please reset your password.' });
+    }
+
+    const passwordValid = await comparePassword(password, user.passwordHash);
+    if (!passwordValid) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+    }
+
+    // Update last login timestamp
+    await repo.updateUserById(user.id, { lastLogin: new Date().toISOString() });
+
+    // Generate a session token and return the user WITHOUT the passwordHash
+    const token = generateToken(user.id);
+    return res.json({
+      success: true,
+      user: sanitizeUser(user),
+      token,
+    });
+  });
+
+  // POST /api/auth/signup — customer self-registration
+  app.post('/api/auth/signup', async (req, res) => {
+    const { email, password, name } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required.' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+    }
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.valid) {
+      return res.status(400).json({ success: false, error: pwCheck.message });
+    }
+
+    // Check if email is already taken
+    const existing = await repo.findUserByEmail(email);
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'An account with this email already exists.' });
+    }
+
+    // Create the new customer with a hashed password
+    const passwordHash = await hashPassword(password);
     const newUser: User = {
       id: `usr-${Date.now()}`,
-      name: email.split('@')[0],
-      email,
-      role: email.includes('admin') ? 'super_admin' : 'customer',
+      name: name || email.split('@')[0],
+      email: email.toLowerCase(),
+      role: 'customer',
       twoFactorEnabled: false,
       addresses: [],
       totalSpent: 0,
       ordersCount: 0,
       wishlist: [],
       status: 'active',
-      createdAt: new Date().toISOString()
+      passwordHash,
+      createdAt: new Date().toISOString(),
     };
     await repo.createUser(newUser);
-    res.json({
+
+    const token = generateToken(newUser.id);
+    return res.status(201).json({
       success: true,
-      user: newUser,
-      token: `pb_jwt_${newUser.id}_${Date.now()}`
+      user: sanitizeUser(newUser),
+      token,
     });
+  });
+
+  // POST /api/auth/change-password — change the current user's password
+  app.post('/api/auth/change-password', async (req, res) => {
+    const { email, currentPassword, newPassword } = req.body;
+
+    if (!email || !currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Email, current password, and new password are required.' });
+    }
+
+    const user = await repo.findUserWithPassword(email);
+    if (!user || !user.passwordHash) {
+      return res.status(404).json({ success: false, error: 'Account not found.' });
+    }
+
+    const passwordValid = await comparePassword(currentPassword, user.passwordHash);
+    if (!passwordValid) {
+      return res.status(401).json({ success: false, error: 'Current password is incorrect.' });
+    }
+
+    const pwCheck = validatePassword(newPassword);
+    if (!pwCheck.valid) {
+      return res.status(400).json({ success: false, error: pwCheck.message });
+    }
+
+    const success = await repo.changeUserPassword(user.id, newPassword);
+    if (!success) {
+      return res.status(500).json({ success: false, error: 'Failed to update password.' });
+    }
+
+    await repo.createAdminLog({
+      id: `log-${Date.now()}`,
+      adminName: user.name,
+      adminEmail: user.email,
+      action: 'Password Changed',
+      targetType: 'settings',
+      targetId: user.id,
+      details: `User ${user.email} changed their password.`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ success: true, message: 'Password updated successfully.' });
+  });
+
+  // GET /api/auth/me — return the current user (placeholder — in production,
+  // this would validate the JWT from the Authorization header)
+  app.get('/api/auth/me', async (req, res) => {
+    // For this demo, we accept ?email= query param to look up the current user.
+    // In production, extract the JWT from Authorization header and verify it.
+    const email = req.query.email as string;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email query parameter is required.' });
+    }
+    const user = await repo.findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+    return res.json({ success: true, user: sanitizeUser(user) });
+  });
+
+  // ----------------------------------------------------
+  // ADMIN USER MANAGEMENT API
+  // ----------------------------------------------------
+
+  // GET /api/admin/users — list all users (admin only)
+  app.get('/api/admin/users', async (req, res) => {
+    const users = await repo.getUsers();
+    // Strip passwordHashes before returning
+    const safeUsers = users.map(u => sanitizeUser(u));
+    res.json({ users: safeUsers });
+  });
+
+  // POST /api/admin/users — create a new admin/staff user (super_admin only)
+  app.post('/api/admin/users', async (req, res) => {
+    const { email, password, name, role } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required.' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, error: 'Invalid email address.' });
+    }
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.valid) {
+      return res.status(400).json({ success: false, error: pwCheck.message });
+    }
+
+    const existing = await repo.findUserByEmail(email);
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'An account with this email already exists.' });
+    }
+
+    const passwordHash = await hashPassword(password);
+    const newUser: User = {
+      id: `usr-${Date.now()}`,
+      name,
+      email: email.toLowerCase(),
+      role: role || 'support_agent',
+      twoFactorEnabled: false,
+      addresses: [],
+      totalSpent: 0,
+      ordersCount: 0,
+      wishlist: [],
+      status: 'active',
+      passwordHash,
+      createdAt: new Date().toISOString(),
+    };
+    await repo.createUser(newUser);
+
+    await repo.createAdminLog({
+      id: `log-${Date.now()}`,
+      adminName: 'PlayBeat Admin',
+      adminEmail: 'admin@playbeat.digital',
+      action: 'User Created',
+      targetType: 'settings',
+      targetId: newUser.id,
+      details: `Created ${newUser.role} account for ${newUser.email}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.status(201).json({ success: true, user: sanitizeUser(newUser) });
+  });
+
+  // PUT /api/admin/users/:id — update a user (role, status, name, phone)
+  app.put('/api/admin/users/:id', async (req, res) => {
+    const id = req.params.id;
+    const updates = req.body;
+    // Never allow passwordHash to be set via this endpoint
+    delete updates.passwordHash;
+    delete updates.id;
+    delete updates.email; // email is immutable
+
+    const updated = await repo.updateUserById(id, updates);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    await repo.createAdminLog({
+      id: `log-${Date.now()}`,
+      adminName: 'PlayBeat Admin',
+      adminEmail: 'admin@playbeat.digital',
+      action: 'User Updated',
+      targetType: 'settings',
+      targetId: id,
+      details: `Updated user ${updated.email} (${Object.keys(updates).join(', ')})`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ success: true, user: sanitizeUser(updated) });
+  });
+
+  // POST /api/admin/users/:id/reset-password — admin resets a user's password
+  app.post('/api/admin/users/:id/reset-password', async (req, res) => {
+    const id = req.params.id;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({ success: false, error: 'New password is required.' });
+    }
+    const pwCheck = validatePassword(newPassword);
+    if (!pwCheck.valid) {
+      return res.status(400).json({ success: false, error: pwCheck.message });
+    }
+
+    const user = await repo.updateUserById(id, {});
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    const success = await repo.changeUserPassword(id, newPassword);
+    if (!success) {
+      return res.status(500).json({ success: false, error: 'Failed to reset password.' });
+    }
+
+    await repo.createAdminLog({
+      id: `log-${Date.now()}`,
+      adminName: 'PlayBeat Admin',
+      adminEmail: 'admin@playbeat.digital',
+      action: 'Password Reset',
+      targetType: 'settings',
+      targetId: id,
+      details: `Admin reset password for ${user.email}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ success: true, message: 'Password reset successfully.' });
+  });
+
+  // DELETE /api/admin/users/:id — delete a user
+  app.delete('/api/admin/users/:id', async (req, res) => {
+    const id = req.params.id;
+
+    // Prevent deleting the default admin
+    if (id === 'usr-admin-default') {
+      return res.status(403).json({ success: false, error: 'Cannot delete the default admin account.' });
+    }
+
+    const success = await repo.deleteUserById(id);
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    await repo.createAdminLog({
+      id: `log-${Date.now()}`,
+      adminName: 'PlayBeat Admin',
+      adminEmail: 'admin@playbeat.digital',
+      action: 'User Deleted',
+      targetType: 'settings',
+      targetId: id,
+      details: `Deleted user ${id}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.json({ success: true });
+  });
+
+  // ----------------------------------------------------
+  // ADMIN DASHBOARD RESET — wipe all data and re-seed
+  // ----------------------------------------------------
+  app.post('/api/admin/reset-db', async (req, res) => {
+    try {
+      await repo.resetDatabase();
+      await repo.createAdminLog({
+        id: `log-${Date.now()}`,
+        adminName: 'PlayBeat Admin',
+        adminEmail: 'admin@playbeat.digital',
+        action: 'Database Reset',
+        targetType: 'settings',
+        targetId: 'database',
+        details: 'Admin triggered a full database reset. All collections were dropped and re-seeded.',
+        timestamp: new Date().toISOString(),
+      });
+      return res.json({
+        success: true,
+        message: 'Database reset complete. All collections have been re-seeded with default data.',
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message || 'Reset failed.' });
+    }
   });
 
   // ----------------------------------------------------

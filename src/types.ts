@@ -50,6 +50,7 @@ export interface User {
   status: 'active' | 'suspended' | 'pending_verification';
   createdAt: string;
   lastLogin?: string;
+  passwordHash?: string; // bcrypt hash — never expose to client, never log
 }
 
 export interface Category {
