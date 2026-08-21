@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
@@ -20,9 +20,16 @@ const COUNTRIES = [
 type Mode = 'login' | 'signup' | 'forgot' | 'reset';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, addToast } = useStore();
+  const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, addToast, authMode } = useStore();
 
   const [mode, setMode] = useState<Mode>('login');
+
+  // Sync mode with authMode whenever the modal opens (Sign Up button → signup mode)
+  useEffect(() => {
+    if (isAuthModalOpen) {
+      setMode(authMode === 'signup' ? 'signup' : 'login');
+    }
+  }, [isAuthModalOpen, authMode]);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');

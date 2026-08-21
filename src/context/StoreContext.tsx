@@ -127,6 +127,8 @@ export interface StoreContextType {
   setIsWishlistOpen: (open: boolean) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
+  authMode: 'login' | 'signup';
+  setAuthMode: (mode: 'login' | 'signup') => void;
   isCheckoutOpen: boolean;
   setIsCheckoutOpen: (open: boolean) => void;
   isCustomerPortalOpen: boolean;
@@ -294,6 +296,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isCustomerPortalOpen, setIsCustomerPortalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
@@ -1215,6 +1218,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsWishlistOpen,
         isAuthModalOpen,
         setIsAuthModalOpen,
+        authMode,
+        setAuthMode,
         isCheckoutOpen,
         setIsCheckoutOpen,
         isCustomerPortalOpen,

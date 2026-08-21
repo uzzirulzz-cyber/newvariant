@@ -49,6 +49,7 @@ export const Header: React.FC = () => {
     currentUser,
     setCurrentUser,
     setIsAuthModalOpen,
+    setAuthMode,
     setIsCustomerPortalOpen,
     setIsWhatsAppModalOpen,
     activeView,
@@ -668,6 +669,7 @@ export const Header: React.FC = () => {
               <>
                 <button
                   onClick={() => {
+                    setAuthMode('login');
                     setIsAuthModalOpen(true);
                   }}
                   className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/30 transition-all"
@@ -677,10 +679,10 @@ export const Header: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
+                    setAuthMode('signup');
                     setIsAuthModalOpen(true);
-                    // The auth modal defaults to login mode — it has a "Sign Up" toggle
                   }}
-                  className="btn-glossy btn-glossy-emerald btn-glossy-sm"
+                  className="btn-glossy btn-glossy-yellow btn-glossy-sm"
                 >
                   <span>Sign Up</span>
                 </button>
@@ -777,6 +779,7 @@ export const Header: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#26334A]">
                 <button
                   onClick={() => {
+                    setAuthMode('login');
                     setIsAuthModalOpen(true);
                     setIsMobileNavOpen(false);
                   }}
@@ -787,10 +790,11 @@ export const Header: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
+                    setAuthMode('signup');
                     setIsAuthModalOpen(true);
                     setIsMobileNavOpen(false);
                   }}
-                  className="btn-glossy btn-glossy-emerald btn-glossy-sm w-full"
+                  className="btn-glossy btn-glossy-yellow btn-glossy-sm w-full"
                 >
                   Sign Up
                 </button>
