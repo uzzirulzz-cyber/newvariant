@@ -350,7 +350,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [compareList, setCompareList] = useState<Product[]>([INITIAL_PRODUCTS[0], INITIAL_PRODUCTS[1]]);
-  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]); // Default Super Admin for easy testing
+  // Start as a GUEST — no profile pre-loaded. Users must explicitly sign in.
+  // The super admin is NOT auto-loaded on app start.
+  const GUEST_USER: User = {
+    id: 'guest',
+    name: 'Guest',
+    email: '',
+    role: 'customer',
+    twoFactorEnabled: false,
+    addresses: [],
+    totalSpent: 0,
+    ordersCount: 0,
+    wishlist: [],
+    status: 'active',
+    createdAt: new Date().toISOString(),
+  };
+  const [currentUser, setCurrentUser] = useState<User>(GUEST_USER);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [content, setContent] = useState<ContentSection>(INITIAL_CONTENT);
   const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);

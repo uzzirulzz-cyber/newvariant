@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { User } from '../types';
 
 /**
@@ -14,13 +13,15 @@ import type { User } from '../types';
  *  - logout(): clears the session
  *  - updateProfile(): updates local user state after profile changes
  *
- * The store is persisted to localStorage so the session survives
- * page refreshes (token + user only — passwords never stored).
+ * NOT persisted — the store starts empty on every page load.
+ * No user profile (including super admin) is auto-loaded.
+ * Users must explicitly sign in each time they open the app.
  *
  * SECURITY:
- *  - Passwords are NEVER stored in this store or in localStorage.
+ *  - Passwords are NEVER stored in this store.
  *  - The token is an opaque string, not a JWT (for this demo).
  *  - The passwordHash field is never included in the stored user.
+ *  - No session data is written to localStorage.
  */
 
 interface AuthState {
@@ -38,95 +39,81 @@ interface AuthState {
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
+export const useAuthStore = create<AuthState>()((set) => ({
+  currentUser: null,
+  token: null,
+  isAuthenticated: false,
+  isLoading: false,
+  error: null,
+
+  login: async (email, password) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        set({
+          currentUser: data.user,
+          token: data.token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        return { success: true };
+      }
+      set({ isLoading: false, error: data.error || 'Login failed' });
+      return { success: false, error: data.error };
+    } catch {
+      set({ isLoading: false, error: 'Network error' });
+      return { success: false, error: 'Network error' };
+    }
+  },
+
+  signup: async (email, password, name) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        set({
+          currentUser: data.user,
+          token: data.token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        return { success: true };
+      }
+      set({ isLoading: false, error: data.error || 'Signup failed' });
+      return { success: false, error: data.error };
+    } catch {
+      set({ isLoading: false, error: 'Network error' });
+      return { success: false, error: 'Network error' };
+    }
+  },
+
+  logout: () => {
+    set({
       currentUser: null,
       token: null,
       isAuthenticated: false,
-      isLoading: false,
       error: null,
+    });
+  },
 
-      login: async (email, password) => {
-        set({ isLoading: true, error: null });
-        try {
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            set({
-              currentUser: data.user,
-              token: data.token,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-            });
-            return { success: true };
-          }
-          set({ isLoading: false, error: data.error || 'Login failed' });
-          return { success: false, error: data.error };
-        } catch {
-          set({ isLoading: false, error: 'Network error' });
-          return { success: false, error: 'Network error' };
-        }
-      },
+  updateProfile: (updates) => {
+    set((state) => ({
+      currentUser: state.currentUser ? { ...state.currentUser, ...updates } : null,
+    }));
+  },
 
-      signup: async (email, password, name) => {
-        set({ isLoading: true, error: null });
-        try {
-          const res = await fetch('/api/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // NOTE: role is NOT sent — the API always creates 'customer'
-            body: JSON.stringify({ email, password, name }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            set({
-              currentUser: data.user,
-              token: data.token,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-            });
-            return { success: true };
-          }
-          set({ isLoading: false, error: data.error || 'Signup failed' });
-          return { success: false, error: data.error };
-        } catch {
-          set({ isLoading: false, error: 'Network error' });
-          return { success: false, error: 'Network error' };
-        }
-      },
-
-      logout: () => {
-        set({
-          currentUser: null,
-          token: null,
-          isAuthenticated: false,
-          error: null,
-        });
-      },
-
-      updateProfile: (updates) => {
-        set((state) => ({
-          currentUser: state.currentUser ? { ...state.currentUser, ...updates } : null,
-        }));
-      },
-
-      clearError: () => set({ error: null }),
-    }),
-    {
-      name: 'playbeat-auth', // localStorage key
-      // Only persist currentUser and token (not isLoading/error)
-      partialize: (state) => ({
-        currentUser: state.currentUser,
-        token: state.token,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    }
-  )
-);
+  clearError: () => set({ error: null }),
+}));

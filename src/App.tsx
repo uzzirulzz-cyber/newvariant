@@ -31,6 +31,19 @@ function isAdminUrl(): boolean {
 const AppContent: React.FC = () => {
   const { activeView, setActiveView } = useStore();
 
+  // ── Clean up stale localStorage from previous persist middleware ───
+  // The Zustand auth + cart stores no longer use persist, but old keys
+  // from previous versions may still be in the browser. Remove them so
+  // no profile or session data is auto-loaded on app start.
+  useEffect(() => {
+    try {
+      localStorage.removeItem('playbeat-auth');
+      localStorage.removeItem('playbeat-cart');
+    } catch {
+      // Ignore errors (private mode, etc.)
+    }
+  }, []);
+
   // ── URL-based routing ──────────────────────────────────────
   // On mount, check if the URL is /admin and switch to admin view.
   // Also listen for popstate (browser back/forward) so navigation works.
