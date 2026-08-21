@@ -426,20 +426,39 @@
   border-color: #3a4256;
 }
 
-/* Admin section header — premium blue gradient label */
+/* Admin section header — glossy blue PILL BUTTON (not text) */
 .admin-section-header {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.625rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 800;
-  padding: 0.5rem 0.85rem 0.25rem;
+  padding: 0.3rem 0.75rem;
+  margin: 0.5rem 0 0.3rem 0.5rem;
   font-family: 'JetBrains Mono', monospace;
-  color: #60A5FA;
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.12) 0%, transparent 100%);
-  border-left: 2px solid #2563EB;
-  border-radius: 0 6px 6px 0;
-  margin: 0.5rem 0 0.25rem 0;
-  text-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+  color: #ffffff;
+  background: linear-gradient(180deg, #4D94FF 0%, #0055DD 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(0, 51, 204, 0.3),
+              0 0 10px rgba(77, 148, 255, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular highlight on the blue pill button */
+.admin-section-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+  pointer-events: none;
+  border-radius: 9999px 9999px 0 0;
 }
 
 /* Gold pill button (top-right "Admin Panel" button) */
