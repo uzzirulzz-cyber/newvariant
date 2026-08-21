@@ -336,7 +336,7 @@ export const AuthModal: React.FC = () => {
               )}
 
               {/* Submit button */}
-              <button type="submit" disabled={isSubmitting} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white text-xs font-bold font-display shadow-md shadow-red-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+              <button type="submit" disabled={isSubmitting} className="btn-glossy btn-glossy-blue w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" style={{padding:"0.625rem 1.5rem"}}>
                 {isSubmitting ? (
                   <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>{mode === 'login' ? 'Signing in...' : mode === 'signup' ? 'Creating account...' : mode === 'forgot' ? 'Generating token...' : 'Resetting password...'}</span></>
                 ) : (

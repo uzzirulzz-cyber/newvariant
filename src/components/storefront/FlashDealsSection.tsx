@@ -101,7 +101,7 @@ export const FlashDealsSection: React.FC = () => {
                     addToCart(product, product.variations[0], 1);
                     setIsCheckoutOpen(true);
                   }}
-                  className="p-2 rounded-xl btn-primary text-xs"
+                  className="btn-glossy btn-glossy-red btn-glossy-sm"
                   aria-label="Instant Buy Flash Deal"
                 >
                   <Zap className="w-4 h-4" />

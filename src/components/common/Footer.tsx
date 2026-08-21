@@ -87,7 +87,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={() => setIsWhatsAppModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl btn-secondary text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+              className="btn-glossy btn-glossy-blue btn-glossy-sm flex items-center gap-2"
             >
               <MessageCircle className="w-4 h-4 text-emerald-400" />
               <span>WhatsApp VIP</span>
@@ -95,7 +95,7 @@ export const Footer: React.FC = () => {
 
             <a
               href="mailto:support@playbeat.digital"
-              className="p-2.5 rounded-xl btn-secondary"
+              className="btn-glossy btn-glossy-dark btn-glossy-circle"
               aria-label="Email Support"
             >
               <Mail className="w-4 h-4 text-zinc-300" />

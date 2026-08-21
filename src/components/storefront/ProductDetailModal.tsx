@@ -360,7 +360,7 @@ export const ProductDetailModal: React.FC = () => {
                     <button
                       onClick={handleBuyNow}
                       disabled={stockState === 'out'}
-                      className="flex-1 py-3.5 rounded-xl btn-primary text-sm font-bold font-display flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-glossy btn-glossy-yellow flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span>Buy Now</span>
                       <ArrowRight className="w-4 h-4" />
@@ -369,7 +369,7 @@ export const ProductDetailModal: React.FC = () => {
                     <button
                       onClick={handleAddToCart}
                       disabled={stockState === 'out'}
-                      className="px-5 py-3.5 rounded-xl btn-secondary text-sm font-bold font-display flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-glossy btn-glossy-emerald flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ShoppingCart className="w-4 h-4" />
                       <span className="hidden sm:inline">{inCart ? 'Add More' : 'Add to Cart'}</span>

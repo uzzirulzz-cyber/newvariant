@@ -201,13 +201,13 @@ export const HeroSection: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsCompareModalOpen(true)}
-                      className="px-3 py-2 rounded-xl btn-secondary text-xs font-mono text-slate-300 hover:text-white"
+                      className="btn-glossy btn-glossy-purple btn-glossy-sm"
                     >
                       Compare
                     </button>
                     <button
                       onClick={() => setSelectedProduct(featuredProjector)}
-                      className="px-4 py-2 rounded-xl btn-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                      className="btn-glossy btn-glossy-yellow btn-glossy-sm flex items-center gap-1"
                     >
                       <span>Explore</span>
                       <ArrowRight className="w-3.5 h-3.5" />

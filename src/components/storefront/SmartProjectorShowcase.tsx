@@ -124,7 +124,7 @@ export const SmartProjectorShowcase: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setSelectedProduct(flagship)}
-                  className="px-5 py-2.5 rounded-xl btn-primary text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+                  className="btn-glossy btn-glossy-orange btn-glossy-sm flex items-center gap-2"
                 >
                   <span>View Details</span>
                   <ArrowRight className="w-4 h-4" />

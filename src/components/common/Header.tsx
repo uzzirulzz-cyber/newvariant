@@ -234,7 +234,7 @@ export const Header: React.FC = () => {
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs uppercase tracking-widest font-bold transition-all ${
                 isMegaMenuOpen
                   ? 'bg-[#1769FF]/20 text-[#287BFF] border border-[#1769FF]/40 font-bold shadow-sm'
-                  : 'btn-secondary'
+                  : 'btn-glossy btn-glossy-dark btn-glossy-sm'
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-[#1769FF]" />
@@ -392,7 +392,7 @@ export const Header: React.FC = () => {
           <div className="relative hidden lg:block">
             <button
               onClick={() => setIsCurrencyMenuOpen(!isCurrencyMenuOpen)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl btn-secondary text-xs font-mono text-slate-200"
+              className="btn-glossy btn-glossy-dark btn-glossy-sm flex items-center gap-1.5"
             >
               <span>{currency.code}</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
@@ -429,7 +429,7 @@ export const Header: React.FC = () => {
           {/* WISHLIST BUTTON */}
           <button
             onClick={() => setIsWishlistOpen(true)}
-            className="relative p-2.5 rounded-xl btn-secondary text-slate-300 hover:text-white"
+            className="btn-glossy btn-glossy-dark btn-glossy-circle"
             aria-label="View Wishlist"
           >
             <Heart className="w-4 h-4" />
@@ -441,7 +441,7 @@ export const Header: React.FC = () => {
           {/* CART BUTTON */}
           <button
             onClick={() => setIsCartOpen(true)}
-            className="relative p-2.5 rounded-xl btn-secondary text-slate-300 hover:text-white flex items-center gap-2"
+            className="btn-glossy btn-glossy-dark btn-glossy-sm flex items-center gap-2"
             aria-label="View Cart"
           >
             <div className="relative">
@@ -547,7 +547,7 @@ export const Header: React.FC = () => {
           {/* MOBILE MENU TOGGLE */}
           <button
             onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-            className="md:hidden p-2.5 rounded-xl btn-secondary text-slate-300"
+            className="btn-glossy btn-glossy-dark btn-glossy-circle md:hidden"
             aria-label="Toggle navigation menu"
           >
             {isMobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -727,7 +727,7 @@ export const Header: React.FC = () => {
                   setIsCustomerPortalOpen(true);
                   setIsMobileNavOpen(false);
                 }}
-                className="flex items-center justify-center gap-2 p-3 rounded-xl btn-secondary text-xs font-bold uppercase tracking-widest"
+                className="btn-glossy btn-glossy-dark btn-glossy-sm flex items-center justify-center gap-2"
               >
                 <User className="w-4 h-4" />
                 Vault

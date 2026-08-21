@@ -114,7 +114,7 @@ export const TrendingSection: React.FC = () => {
                 onClick={() => setProductTypeFilter('all')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs uppercase tracking-wider transition-all ${
                   productTypeFilter === 'all'
-                    ? 'btn-primary font-bold shadow-md'
+                    ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
                     : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
@@ -124,7 +124,7 @@ export const TrendingSection: React.FC = () => {
                 onClick={() => setProductTypeFilter('digital')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 ${
                   productTypeFilter === 'digital'
-                    ? 'btn-primary font-bold shadow-md'
+                    ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
                     : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
@@ -135,7 +135,7 @@ export const TrendingSection: React.FC = () => {
                 onClick={() => setProductTypeFilter('physical_projector')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 ${
                   productTypeFilter === 'physical_projector'
-                    ? 'btn-primary font-bold shadow-md'
+                    ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
                     : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
@@ -182,7 +182,7 @@ export const TrendingSection: React.FC = () => {
                 setProductTypeFilter('all');
                 setActivePromoFilter('all');
               }}
-              className="px-4 py-2 rounded-xl btn-primary text-xs font-bold uppercase tracking-wider"
+              className="btn-glossy btn-glossy-cyan btn-glossy-sm"
             >
               Reset All Filters
             </button>

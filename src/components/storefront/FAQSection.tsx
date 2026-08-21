@@ -65,7 +65,7 @@ export const FAQSection: React.FC = () => {
 
           <button
             onClick={() => setIsWhatsAppModalOpen(true)}
-            className="px-5 py-2.5 rounded-xl btn-secondary text-xs font-bold uppercase tracking-widest flex items-center gap-2 shrink-0"
+            className="btn-glossy btn-glossy-blue btn-glossy-sm flex items-center gap-2 shrink-0"
           >
             <MessageCircle className="w-4 h-4 text-emerald-400" />
             <span>Chat on WhatsApp</span>
