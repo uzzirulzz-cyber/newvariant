@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
@@ -36,6 +36,34 @@ export const AdminLoginGate: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // API health check — pings /api/health on mount so the user immediately
+  // sees whether the server is reachable (green dot) or down (red dot).
+  // On Vercel, the first request triggers a cold start which can take 5-30s.
+  // The health check runs in the background and updates the status indicator.
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkHealth = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch('/api/health', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (cancelled) return;
+        if (res.ok) {
+          setApiStatus('online');
+        } else {
+          setApiStatus('offline');
+        }
+      } catch {
+        if (!cancelled) setApiStatus('offline');
+      }
+    };
+    checkHealth();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -44,35 +72,59 @@ export const AdminLoginGate: React.FC = () => {
 
     const adminRoles = ['super_admin', 'admin', 'product_manager', 'order_manager', 'finance_manager', 'support_agent', 'content_manager', 'marketing_manager', 'read_only'];
 
+    // AbortController — give the server up to 60s to respond (Vercel cold
+    // starts + MongoDB Atlas connection can take 5-30s on the first request).
+    // After 60s, abort and show a clear timeout message.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     try {
-      // ONLY the API can authenticate — no client-side hardcoded fallback.
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),
+        signal: controller.signal,
       });
+
+      // Handle non-JSON responses gracefully (e.g., Vercel 504 HTML error page,
+      // 502 Bad Gateway, etc.) — res.json() would throw on these.
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        if (res.status === 504) {
+          throw new Error('The server took too long to respond (cold start). Please retry — the second attempt will be faster.');
+        }
+        throw new Error(`Server returned ${res.status} ${res.statusText}. The API may be starting up — please retry in a few seconds.`);
+      }
+
       const data = await res.json();
 
       if (data.success && adminRoles.includes(data.user.role)) {
         setCurrentUser(data.user);
         useAuthStore.setState({ currentUser: data.user, token: data.token, isAuthenticated: true });
         addToast('success', 'Admin Access Granted', `Welcome, ${data.user.name}!`);
-        // Clear the password field immediately on success as well, so a
-        // future visitor on the same browser tab cannot reuse it.
         setPassword('');
         setPwKey((k) => k + 1);
         setLoading(false);
+        clearTimeout(timeoutId);
         return;
       }
 
-      // Auth failed — clear both fields and force the user to retype.
       if (data.success && !adminRoles.includes(data.user.role)) {
         setError('This account does not have admin access. Please use an admin account.');
       } else {
         setError(data.error || 'Invalid credentials. Please try again.');
       }
-    } catch {
-      setError('Network error — unable to reach the authentication server. Please retry.');
+    } catch (err: any) {
+      // Distinguish between a timeout/abort and a real network error
+      if (err?.name === 'AbortError') {
+        setError('The server took too long to respond (60s timeout). This usually happens on the first request after a deploy — the serverless function is cold-starting. Please click "Access Admin Panel" again.');
+      } else if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError')) {
+        setError('Network error — unable to reach the authentication server. Check your internet connection and retry. If the problem persists, the API may be down.');
+      } else {
+        setError(err?.message || 'Network error — unable to reach the authentication server. Please retry.');
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
     // Clear the password and force a remount so the browser does not retain
     // the value in its autofill cache.
@@ -170,7 +222,26 @@ export const AdminLoginGate: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6 p-3 rounded-lg bg-blue-500/5 border border-blue-500/15 flex items-start gap-2">
+          {/* API status indicator — shows if the server is reachable */}
+          <div className="mt-4 flex items-center justify-between text-[10px] font-mono">
+            <span className="text-gray-500 uppercase tracking-wider">API Status:</span>
+            <span className={`flex items-center gap-1.5 ${
+              apiStatus === 'online' ? 'text-emerald-400'
+              : apiStatus === 'offline' ? 'text-red-400'
+              : 'text-amber-400'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                apiStatus === 'online' ? 'bg-emerald-400'
+                : apiStatus === 'offline' ? 'bg-red-400'
+                : 'bg-amber-400 animate-pulse'
+              }`} />
+              {apiStatus === 'online' ? 'Online'
+              : apiStatus === 'offline' ? 'Offline — check backends'
+              : 'Checking connection...'}
+            </span>
+          </div>
+
+          <div className="mt-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/15 flex items-start gap-2">
             <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
             <p className="text-[10px] text-gray-400 leading-relaxed">
               Enter your admin email and password to continue. Credentials are never saved or pre-filled on this device — re-enter them every time you visit.
