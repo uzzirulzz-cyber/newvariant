@@ -363,7 +363,7 @@ export const AdminLayout: React.FC = () => {
                     className={`admin-nav-item ${isActive ? 'is-active' : ''}`}
                     aria-current={isActive ? 'page' : undefined}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-gray-500'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-500'}`} />
                     <span className="flex-1 truncate">{item.label}</span>
                     {/* Tooltip — visible only in collapsed mode */}
                     <span className="admin-nav-item-tooltip">{item.label}</span>
@@ -381,7 +381,7 @@ export const AdminLayout: React.FC = () => {
           onClick={() => handleTabSelect('content')}
           className={`admin-nav-item ${adminTab === 'content' ? 'is-active' : ''}`}
         >
-          <Palette className={`w-4 h-4 shrink-0 ${adminTab === 'content' ? 'text-amber-400' : 'text-gray-500'}`} />
+          <Palette className={`w-4 h-4 shrink-0 ${adminTab === 'content' ? 'text-blue-400' : 'text-gray-500'}`} />
           <span className="flex-1 text-left truncate sidebar-footer-text">Themes & Sections</span>
           <span className="w-1.5 h-1.5 rounded-full bg-purple-500 sidebar-footer-text" />
         </button>
@@ -389,7 +389,7 @@ export const AdminLayout: React.FC = () => {
           onClick={() => handleTabSelect('nav-manager')}
           className={`admin-nav-item ${adminTab === 'nav-manager' ? 'is-active' : ''}`}
         >
-          <LayoutDashboard className={`w-4 h-4 shrink-0 ${adminTab === 'nav-manager' ? 'text-amber-400' : 'text-gray-500'}`} />
+          <LayoutDashboard className={`w-4 h-4 shrink-0 ${adminTab === 'nav-manager' ? 'text-blue-400' : 'text-gray-500'}`} />
           <span className="flex-1 text-left truncate sidebar-footer-text">Navigation Customizer</span>
         </button>
         {/* Sign Out — glossy red pill */}
@@ -463,7 +463,7 @@ export const AdminLayout: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setIsCategoryMenuOpen((v) => !v)}
-                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-400 hover:text-indigo-300 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors"
               >
                 <span>All Categories</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />

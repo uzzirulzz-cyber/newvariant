@@ -373,7 +373,7 @@
   border-right: 1px solid #1f2937;
 }
 
-/* Sidebar menu item — flat, hover lift, active state with gold left border */
+/* Sidebar menu item — flat, hover lift, active state with blue left border */
 .admin-nav-item {
   position: relative;
   display: flex;
@@ -384,21 +384,22 @@
   font-size: 0.8125rem;
   color: #9ca3af;
   font-weight: 500;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
   width: 100%;
   text-align: left;
 }
 
 .admin-nav-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(59, 130, 246, 0.08);
   color: #f9fafb;
 }
 
 .admin-nav-item.is-active {
-  background: rgba(16, 185, 129, 0.08);
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
   color: #f9fafb;
   font-weight: 600;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.1);
 }
 
 .admin-nav-item.is-active::before {
@@ -408,8 +409,9 @@
   top: 0.4rem;
   bottom: 0.4rem;
   width: 3px;
-  background: #10b981;
+  background: linear-gradient(180deg, #60A5FA 0%, #2563EB 100%);
   border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
 }
 
 /* Admin card — slightly lighter than sidebar, matches #151a23 */
@@ -424,15 +426,20 @@
   border-color: #3a4256;
 }
 
-/* Admin section header — uppercase muted gray */
+/* Admin section header — premium blue gradient label */
 .admin-section-header {
   font-size: 0.625rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #6b7280;
-  font-weight: 700;
+  font-weight: 800;
   padding: 0.5rem 0.85rem 0.25rem;
   font-family: 'JetBrains Mono', monospace;
+  color: #60A5FA;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.12) 0%, transparent 100%);
+  border-left: 2px solid #2563EB;
+  border-radius: 0 6px 6px 0;
+  margin: 0.5rem 0 0.25rem 0;
+  text-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
 }
 
 /* Gold pill button (top-right "Admin Panel" button) */
