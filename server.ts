@@ -2,7 +2,7 @@
 // This must be the first import so process.env.MONGODB_URI etc. are populated
 // when src/lib/mongodb.ts is loaded.
 import 'dotenv/config';
-import express from 'express';
+import express, { Express } from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import {
@@ -30,10 +30,19 @@ let dbCoupons: Coupon[] = [...INITIAL_COUPONS];
 let dbAdminLogs: AdminLog[] = [...INITIAL_ADMIN_LOGS];
 let dbImportJobs: ImportJob[] = [];
 
-async function startServer() {
+/**
+ * Create the Express app with all API routes registered.
+ *
+ * This is extracted from startServer() so it can be reused by:
+ *  - server.ts (dev): adds Vite middleware + app.listen()
+ *  - api/index.ts (Vercel serverless): exports the app directly
+ *
+ * IMPORTANT: Each call returns a fresh app instance with fresh in-memory state.
+ * On Vercel, every cold start calls this once and the in-memory state lives
+ * for the lifetime of that serverless instance (until it's recycled).
+ */
+export function createApiApp(): Express {
   const app = express();
-  const PORT = 3000;
-
   app.use(express.json({ limit: '15mb' }));
 
   // ----------------------------------------------------
@@ -856,6 +865,20 @@ async function startServer() {
   });
 
   // ----------------------------------------------------
+  // END of API routes — return the configured app
+  // ----------------------------------------------------
+  return app;
+}
+
+/**
+ * Start the local dev server with Vite middleware + listen on PORT.
+ * Only called when running locally (NOT on Vercel, which uses api/index.ts).
+ */
+async function startServer() {
+  const app = createApiApp();
+  const PORT = 3000;
+
+  // ----------------------------------------------------
   // VITE MIDDLEWARE (DEV) / STATIC HANDLER (PROD)
   // ----------------------------------------------------
   if (process.env.NODE_ENV !== 'production') {
@@ -877,6 +900,10 @@ async function startServer() {
   });
 }
 
-startServer().catch(err => {
-  console.error('Failed to start server:', err);
-});
+// Only start the dev server when run directly (NOT when imported by Vercel's
+// serverless runtime, which imports api/index.ts instead).
+if (!process.env.VERCEL) {
+  startServer().catch(err => {
+    console.error('Failed to start server:', err);
+  });
+}
