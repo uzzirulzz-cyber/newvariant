@@ -175,12 +175,12 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Icon+text tab buttons — glossy pill style */}
+          {/* Each tab button gets its OWN unique glossy color when active */}
           <div className="flex items-center p-1 rounded-full bg-[#0f141c] border border-[#1f2937]">
             {([
-              { id: 'activities', label: 'Activities', icon: Play },
-              { id: 'statistics', label: 'Statistics', icon: BarChart3 },
-              { id: 'summary', label: 'Summary', icon: FileText },
+              { id: 'activities', label: 'Activities', icon: Play, activeClass: 'btn-glossy btn-glossy-yellow btn-glossy-sm' },
+              { id: 'statistics', label: 'Statistics', icon: BarChart3, activeClass: 'btn-glossy btn-glossy-cyan btn-glossy-sm' },
+              { id: 'summary', label: 'Summary', icon: FileText, activeClass: 'btn-glossy btn-glossy-purple btn-glossy-sm' },
             ] as const).map((tab) => {
               const TabIcon = tab.icon;
               return (
@@ -189,7 +189,7 @@ export const AdminDashboard: React.FC = () => {
                   onClick={() => setDashboardTab(tab.id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
                     dashboardTab === tab.id
-                      ? 'btn-glossy btn-glossy-yellow btn-glossy-sm'
+                      ? tab.activeClass
                       : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
@@ -200,25 +200,22 @@ export const AdminDashboard: React.FC = () => {
             })}
           </div>
 
-          {/* Glossy date-range selector pill — yellow */}
-          <button className="btn-glossy btn-glossy-yellow btn-glossy-sm">
+          {/* Each action button has a DIFFERENT premium glossy color */}
+          <button className="btn-glossy btn-glossy-blue btn-glossy-sm">
             <Calendar className="w-3.5 h-3.5" />
             <span>{timeRange === '1D' ? 'Today' : timeRange === '1W' ? 'This Week' : timeRange === '1M' ? 'This Month' : 'This Year'}</span>
             <ChevronDown className="w-3 h-3" />
           </button>
 
-          {/* Glossy export button — yellow */}
-          <button className="btn-glossy btn-glossy-yellow btn-glossy-sm">
+          <button className="btn-glossy btn-glossy-emerald btn-glossy-sm">
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          {/* Glossy circular settings gear — yellow */}
-          <button className="btn-glossy btn-glossy-yellow btn-glossy-circle" aria-label="Settings">
+          <button className="btn-glossy btn-glossy-purple btn-glossy-circle" aria-label="Settings">
             <Settings className="w-4 h-4" />
           </button>
 
-          {/* Glossy reset dashboard — red/orange */}
           <button
             onClick={() => setIsResetOpen(true)}
             className="btn-glossy btn-glossy-red btn-glossy-sm"
@@ -310,17 +307,22 @@ export const AdminDashboard: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mr-1">Range:</span>
           <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-[#0f141c] border border-[#1f2937]">
-            {(['1D', '1W', '1M', '1Y'] as const).map((range) => (
+            {([
+              { r: '1D', c: 'btn-glossy btn-glossy-blue btn-glossy-sm' },
+              { r: '1W', c: 'btn-glossy btn-glossy-yellow btn-glossy-sm' },
+              { r: '1M', c: 'btn-glossy btn-glossy-emerald btn-glossy-sm' },
+              { r: '1Y', c: 'btn-glossy btn-glossy-cyan btn-glossy-sm' },
+            ] as const).map((item) => (
               <button
-                key={range}
-                onClick={() => setTimeRange(range)}
+                key={item.r}
+                onClick={() => setTimeRange(item.r)}
                 className={`px-3 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
-                  timeRange === range
-                    ? 'btn-glossy btn-glossy-blue btn-glossy-sm'
+                  timeRange === item.r
+                    ? item.c
                     : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                 }`}
               >
-                {range}
+                {item.r}
               </button>
             ))}
           </div>

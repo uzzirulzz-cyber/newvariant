@@ -514,13 +514,13 @@ export const AdminLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Right side: Storefront + Admin Panel pill (yellow gradient) + Live Support */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Right side: each button gets its own premium glossy color */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setActiveView('store')}
-              className="text-xs text-gray-400 hover:text-white transition-colors hidden sm:inline-flex"
+              className="btn-glossy btn-glossy-cyan btn-glossy-sm"
             >
-              Storefront
+              <span className="hidden sm:inline">Storefront</span>
             </button>
 
             <button
@@ -536,7 +536,7 @@ export const AdminLayout: React.FC = () => {
 
             <button
               onClick={() => setIsWhatsAppModalOpen(true)}
-              className="btn-glossy btn-glossy-yellow btn-glossy-sm"
+              className="btn-glossy btn-glossy-pink btn-glossy-sm"
             >
               <Headphones className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Live Support</span>

@@ -637,29 +637,29 @@
   text-transform: uppercase;
 }
 
-/* Live Support FAB — yellow-orange gradient (premium) */
+/* Live Support FAB — orange gradient (premium) */
 .admin-fab {
   position: fixed;
   bottom: 1.25rem;
-  left: 17.25rem; /* sits just right of the 260px sidebar */
+  left: 17.25rem;
   z-index: 40;
   width: 3rem;
   height: 3rem;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
-  color: #1a1a1a;
+  background: linear-gradient(135deg, #EA580C 0%, #FB923C 100%);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px -6px rgba(245, 158, 11, 0.5),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px -6px rgba(249, 115, 22, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .admin-fab:hover {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 12px 28px -6px rgba(245, 158, 11, 0.7),
-              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 12px 28px -6px rgba(249, 115, 22, 0.7),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* On mobile, sidebar collapses — FAB sits at the bottom-left */
